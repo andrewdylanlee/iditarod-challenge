@@ -91,8 +91,8 @@ const styles = `
     animation: pulse 2s ease-in-out infinite;
   }
   @keyframes pulse {
-    0%,100% { opacity:1; transform:scale(1); }
-    50%      { opacity:.35; transform:scale(.75); }
+    0%,100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: .35; transform: scale(.75); }
   }
   .refresh-btn {
     font-family: 'Courier Prime', monospace;
@@ -181,7 +181,7 @@ const styles = `
     font-family: 'Courier Prime', monospace; font-size: 13px; font-weight: 700;
     width: 36px; flex-shrink: 0; text-align: center; color: var(--green-light);
   }
-  .m-place.tbd { color: var(--text-muted); }
+  .m-place.tbd  { color: var(--text-muted); }
   .m-name { flex: 1; font-size: 14px; color: var(--text); }
   .m-checkpoint { font-family: 'Courier Prime', monospace; font-size: 11px; color: var(--text-muted); }
 
@@ -231,30 +231,55 @@ const styles = `
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function matchMusher(teamName, standingsName) {
-  const norm = s => s.toLowerCase().trim().replace(/æ/g,"ae").replace(/ø/g,"o").replace(/å/g,"aa");
+  const norm = (s) =>
+    s.toLowerCase().trim()
+      .replace(/æ/g, "ae").replace(/ø/g, "o").replace(/å/g, "aa")
+      .replace(/[^a-z\s]/g, "");
   const a = norm(teamName), b = norm(standingsName);
   if (a === b) return true;
-  const lastA = a.split(" ").pop(), lastB = b.split(" ").pop();
+  const lastA = a.split(" ").pop();
+  const lastB = b.split(" ").pop();
   if (lastA && lastA.length > 3 && lastA === lastB) return true;
   return false;
 }
 
-function parseHTML(html) {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const result = [];
-  doc.querySelectorAll("table tr").forEach(row => {
-    const cells = row.querySelectorAll("td");
-    if (cells.length < 2) return;
-    const place = parseInt(cells[0]?.textContent?.trim(), 10);
-    if (isNaN(place)) return;
-    const name = (cells[1]?.textContent?.trim() || cells[2]?.textContent?.trim() || "").replace(/\s+/g," ");
-    const checkpoint = cells[cells.length - 2]?.textContent?.trim() || "";
-    if (name) result.push({ place, name, checkpoint });
+// Use Claude API to fetch and parse the standings page, bypassing CORS
+async function fetchStandingsViaAPI() {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      tools: [{ type: "web_search_20250305", name: "web_search" }],
+      messages: [
+        {
+          role: "user",
+          content: `Search for the current 2026 Iditarod race standings at iditarod.com/race/2026/standings and return ONLY a JSON array with no explanation, no markdown, no code blocks. Each item should have: place (number), name (string), checkpoint (string). Example format: [{"place":1,"name":"Jessie Holmes","checkpoint":"Finger Lake"}]. Return only the JSON array, nothing else.`,
+        },
+      ],
+    }),
   });
-  return result;
+
+  if (!response.ok) throw new Error(`API error ${response.status}`);
+  const data = await response.json();
+
+  // Extract text from response
+  const text = data.content
+    .filter((b) => b.type === "text")
+    .map((b) => b.text)
+    .join("");
+
+  // Parse JSON — strip any accidental markdown fences
+  const clean = text.replace(/```json|```/g, "").trim();
+  // Find the JSON array in the response
+  const match = clean.match(/\[[\s\S]*\]/);
+  if (!match) throw new Error("No JSON array found in response");
+  return JSON.parse(match[0]);
 }
 
-async function fetchStandings() {
+// Also try direct CORS proxies as fallback
+async function fetchStandingsDirect() {
   const proxies = [
     `https://corsproxy.io/?url=${encodeURIComponent(STANDINGS_URL)}`,
     `https://api.allorigins.win/get?url=${encodeURIComponent(STANDINGS_URL)}`,
@@ -273,44 +298,68 @@ async function fetchStandings() {
   return null;
 }
 
+function parseHTML(html) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const result = [];
+  doc.querySelectorAll("table tr").forEach((row) => {
+    const cells = row.querySelectorAll("td");
+    if (cells.length < 2) return;
+    const place = parseInt(cells[0]?.textContent?.trim(), 10);
+    if (isNaN(place)) return;
+    const name = (cells[1]?.textContent?.trim() || cells[2]?.textContent?.trim() || "").replace(/\s+/g, " ");
+    const checkpoint = cells[cells.length - 2]?.textContent?.trim() || "";
+    if (name) result.push({ place, name, checkpoint });
+  });
+  return result;
+}
+
+async function fetchStandings() {
+  // Try direct CORS proxy first (faster)
+  const direct = await fetchStandingsDirect();
+  if (direct && direct.length > 0) return direct;
+  // Fall back to Claude API
+  return await fetchStandingsViaAPI();
+}
+
+// ─── DEMO DATA ────────────────────────────────────────────────────────────────
 const DEMO = [
-  { place:1,  name:"Jessie Holmes",         checkpoint:"Skwentna" },
-  { place:2,  name:"Matt Hall",              checkpoint:"Skwentna" },
-  { place:3,  name:"Paige Drobny",           checkpoint:"Finger Lake" },
-  { place:4,  name:"Ryan Redington",         checkpoint:"Finger Lake" },
-  { place:5,  name:"Mille Porsild",          checkpoint:"Finger Lake" },
-  { place:6,  name:"Travis Beals",           checkpoint:"Rainy Pass" },
-  { place:7,  name:"Thomas Wærner",          checkpoint:"Rainy Pass" },
-  { place:8,  name:"Richie Diehl",           checkpoint:"Rohn" },
-  { place:9,  name:"Brent Sass",             checkpoint:"Rohn" },
-  { place:10, name:"Aaron Burmeister",       checkpoint:"Rohn" },
-  { place:11, name:"Lauro Eklund",           checkpoint:"Willow" },
-  { place:12, name:"Jessie Royer",           checkpoint:"Willow" },
-  { place:13, name:"Bailey Vitello",         checkpoint:"Willow" },
-  { place:14, name:"Keaton Loebrich",        checkpoint:"Willow" },
-  { place:15, name:"Chad Stoddard",          checkpoint:"Willow" },
-  { place:16, name:"Rohn Buser",             checkpoint:"Willow" },
-  { place:17, name:"Gabe Dunham",            checkpoint:"Willow" },
-  { place:18, name:"Michelle Phillips",      checkpoint:"Willow" },
-  { place:19, name:"Jeff Deeter",            checkpoint:"Willow" },
-  { place:20, name:"Martin Apayauq Reitan",  checkpoint:"Willow" },
-  { place:21, name:"Anna Berington",         checkpoint:"Willow" },
-  { place:22, name:"Kristy Berington",       checkpoint:"Willow" },
-  { place:23, name:"Gunnar Johnson",         checkpoint:"Willow" },
-  { place:24, name:"Joseph Sabin",           checkpoint:"Willow" },
-  { place:25, name:"Riley Dyche",            checkpoint:"Willow" },
-  { place:26, name:"Nathaniel Hamlyn",       checkpoint:"Willow" },
-  { place:27, name:"Adam Lindenmuth",        checkpoint:"Willow" },
-  { place:28, name:"Joey Hinkle",            checkpoint:"Willow" },
-  { place:29, name:"Josi Shelley",           checkpoint:"Willow" },
-  { place:30, name:"Sadie Delia",            checkpoint:"Willow" },
-  { place:31, name:"Zach Steer",             checkpoint:"Willow" },
-  { place:32, name:"Quince Mountain",        checkpoint:"Willow" },
-  { place:33, name:"Lev Shvarts",            checkpoint:"Willow" },
-  { place:34, name:"Sydnie Bahl",            checkpoint:"Willow" },
-  { place:35, name:"Hanna Lyrek",            checkpoint:"Willow" },
-  { place:36, name:"Nicolas Petit",          checkpoint:"Willow" },
-  { place:37, name:"Dallas Seavey",          checkpoint:"Willow" },
+  { place: 1,  name: "Jessie Holmes",        checkpoint: "Skwentna" },
+  { place: 2,  name: "Matt Hall",             checkpoint: "Skwentna" },
+  { place: 3,  name: "Paige Drobny",          checkpoint: "Finger Lake" },
+  { place: 4,  name: "Ryan Redington",        checkpoint: "Finger Lake" },
+  { place: 5,  name: "Mille Porsild",         checkpoint: "Finger Lake" },
+  { place: 6,  name: "Travis Beals",          checkpoint: "Rainy Pass" },
+  { place: 7,  name: "Thomas Wærner",         checkpoint: "Rainy Pass" },
+  { place: 8,  name: "Peter Kaiser",          checkpoint: "Rohn" },
+  { place: 9,  name: "Wade Marrs",            checkpoint: "Rohn" },
+  { place: 10, name: "Richie Diehl",          checkpoint: "Rohn" },
+  { place: 11, name: "Brent Sass",            checkpoint: "Rohn" },
+  { place: 12, name: "Aaron Burmeister",      checkpoint: "Rohn" },
+  { place: 13, name: "Lauro Eklund",          checkpoint: "Willow" },
+  { place: 14, name: "Jessie Royer",          checkpoint: "Willow" },
+  { place: 15, name: "Bailey Vitello",        checkpoint: "Willow" },
+  { place: 16, name: "Keaton Loebrich",       checkpoint: "Willow" },
+  { place: 17, name: "Chad Stoddard",         checkpoint: "Willow" },
+  { place: 18, name: "Rohn Buser",            checkpoint: "Willow" },
+  { place: 19, name: "Gabe Dunham",           checkpoint: "Willow" },
+  { place: 20, name: "Michelle Phillips",     checkpoint: "Willow" },
+  { place: 21, name: "Jeff Deeter",           checkpoint: "Willow" },
+  { place: 22, name: "Martin Apayauq Reitan", checkpoint: "Willow" },
+  { place: 23, name: "Anna Berington",        checkpoint: "Willow" },
+  { place: 24, name: "Kristy Berington",      checkpoint: "Willow" },
+  { place: 25, name: "Gunnar Johnson",        checkpoint: "Willow" },
+  { place: 26, name: "Joseph Sabin",          checkpoint: "Willow" },
+  { place: 27, name: "Riley Dyche",           checkpoint: "Willow" },
+  { place: 28, name: "Nathaniel Hamlyn",      checkpoint: "Willow" },
+  { place: 29, name: "Adam Lindenmuth",       checkpoint: "Willow" },
+  { place: 30, name: "Joey Hinkle",           checkpoint: "Willow" },
+  { place: 31, name: "Josi Shelley",          checkpoint: "Willow" },
+  { place: 32, name: "Sadie Delia",           checkpoint: "Willow" },
+  { place: 33, name: "Zach Steer",            checkpoint: "Willow" },
+  { place: 34, name: "Quince Mountain",       checkpoint: "Willow" },
+  { place: 35, name: "Lev Shvarts",           checkpoint: "Willow" },
+  { place: 36, name: "Hanna Lyrek",           checkpoint: "Willow" },
+  { place: 37, name: "Nicolas Petit",         checkpoint: "Willow" },
 ];
 
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
@@ -325,13 +374,17 @@ export default function App() {
   const load = useCallback(async () => {
     setLoading(true);
     setErrorMsg(null);
-    const data = await fetchStandings();
-    if (data?.length > 0) {
-      setStandings(data);
-      setIsDemo(false);
-    } else {
+    try {
+      const data = await fetchStandings();
+      if (data && data.length > 0) {
+        setStandings(data);
+        setIsDemo(false);
+      } else {
+        throw new Error("Empty standings");
+      }
+    } catch (e) {
       setIsDemo(true);
-      setErrorMsg("Live standings unavailable — showing estimated positions. Retrying in 5 min.");
+      setErrorMsg("Showing estimated positions — live data will update automatically.");
     }
     setUpdatedAt(new Date());
     setLoading(false);
@@ -343,26 +396,28 @@ export default function App() {
     return () => clearInterval(id);
   }, [load]);
 
-  const allMusherNames = TEAMS.flatMap(t => t.mushers);
+  const allMusherNames = TEAMS.flatMap((t) => t.mushers);
 
-  const teamResults = TEAMS.map(team => {
-    const musherData = team.mushers.map(name => {
-      const entry = standings.find(s => matchMusher(name, s.name));
+  const teamResults = TEAMS.map((team) => {
+    const musherData = team.mushers.map((name) => {
+      const entry = standings.find((s) => matchMusher(name, s.name));
       return entry ? { ...entry, label: name } : { label: name, place: null, checkpoint: "" };
     });
-    const allPlaced = musherData.every(d => d.place !== null);
-    const avg = allPlaced ? musherData.reduce((s,d) => s + d.place, 0) / musherData.length : null;
+    const allPlaced = musherData.every((d) => d.place !== null);
+    const avg = allPlaced
+      ? musherData.reduce((s, d) => s + d.place, 0) / musherData.length
+      : null;
     return { ...team, musherData, avg };
   });
 
-  const ranked = [...teamResults].sort((a,b) => {
-    if (a.avg===null && b.avg===null) return 0;
-    if (a.avg===null) return 1;
-    if (b.avg===null) return -1;
+  const ranked = [...teamResults].sort((a, b) => {
+    if (a.avg === null && b.avg === null) return 0;
+    if (a.avg === null) return 1;
+    if (b.avg === null) return -1;
     return a.avg - b.avg;
   });
 
-  const rc = r => r===0?"r1":r===1?"r2":r===2?"r3":"";
+  const rc = (r) => (r === 0 ? "r1" : r === 1 ? "r2" : r === 2 ? "r3" : "");
 
   return (
     <>
@@ -371,14 +426,16 @@ export default function App() {
         <header className="header">
           <div className="header-brand">
             <span className="header-eyebrow">2026 Iditarod · 54th Running</span>
-            <span className="header-title">Family Challenge</span>
+            <span className="header-title">Iditarod Challenge</span>
           </div>
           <div className="header-right">
             <div className="live-badge">
               <div className="live-dot" />
               {loading ? "Updating…" : "Live"}
             </div>
-            <button className="refresh-btn" onClick={load} disabled={loading}>↻ Refresh</button>
+            <button className="refresh-btn" onClick={load} disabled={loading}>
+              ↻ Refresh
+            </button>
           </div>
         </header>
 
@@ -395,7 +452,7 @@ export default function App() {
           {updatedAt && !loading && (
             <p className="timestamp">
               {isDemo ? "Demo data · " : ""}
-              Last updated {updatedAt.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
+              Last updated {updatedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               {" · "}Auto-refreshes every 5 min
             </p>
           )}
@@ -403,30 +460,32 @@ export default function App() {
           <div className="family-board">
             {ranked.map((team, rank) => (
               <div
-                className={`family-card${rank===0?" is-leading":""}`}
+                className={`family-card${rank === 0 ? " is-leading" : ""}`}
                 key={team.id}
-                style={{animationDelay:`${rank*0.08}s`}}
+                style={{ animationDelay: `${rank * 0.08}s` }}
               >
                 <div className="card-header">
-                  <div className={`rank-num ${rc(rank)}`}>{rank+1}</div>
+                  <div className={`rank-num ${rc(rank)}`}>{rank + 1}</div>
                   <div className="card-family">
                     <div className="family-name">{team.name}</div>
                   </div>
                   <div className="card-avg">
                     <span className="avg-label">Avg Place</span>
-                    <div className={`avg-value${team.avg===null?" tbd":""}`}>
-                      {team.avg!==null ? team.avg.toFixed(2) : "TBD"}
+                    <div className={`avg-value${team.avg === null ? " tbd" : ""}`}>
+                      {team.avg !== null ? team.avg.toFixed(2) : "TBD"}
                     </div>
                   </div>
                 </div>
                 <div className="musher-list">
-                  {team.musherData.map((m,i) => (
+                  {team.musherData.map((m, i) => (
                     <div className="musher-row" key={i}>
-                      <div className={`m-place${m.place===null?" tbd":""}`}>
-                        {m.place===null ? "?" : `#${m.place}`}
+                      <div className={`m-place${m.place === null ? " tbd" : ""}`}>
+                        {m.place === null ? "?" : `#${m.place}`}
                       </div>
                       <div className="m-name">{m.label}</div>
-                      {m.checkpoint && <div className="m-checkpoint">{m.checkpoint}</div>}
+                      {m.checkpoint && (
+                        <div className="m-checkpoint">{m.checkpoint}</div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -437,7 +496,7 @@ export default function App() {
           <div className="section-row">
             <span className="section-label">Full Race Standings</span>
             <div className="section-rule" />
-            <button className="toggle-btn" onClick={() => setShowFull(s=>!s)}>
+            <button className="toggle-btn" onClick={() => setShowFull((s) => !s)}>
               {showFull ? "Hide" : "Show all"}
             </button>
           </div>
@@ -446,14 +505,16 @@ export default function App() {
             <table className="standings-table">
               <thead>
                 <tr>
-                  <th>Place</th><th>Musher</th><th>Last Checkpoint</th>
+                  <th>Place</th>
+                  <th>Musher</th>
+                  <th>Last Checkpoint</th>
                 </tr>
               </thead>
               <tbody>
-                {standings.map((s,i) => {
-                  const hl = allMusherNames.some(n => matchMusher(n, s.name));
+                {standings.map((s, i) => {
+                  const hl = allMusherNames.some((n) => matchMusher(n, s.name));
                   return (
-                    <tr key={i} className={hl?"hl":""}>
+                    <tr key={i} className={hl ? "hl" : ""}>
                       <td className="col-place">{s.place}</td>
                       <td className="col-name">{s.name}</td>
                       <td className="col-checkpoint">{s.checkpoint}</td>
