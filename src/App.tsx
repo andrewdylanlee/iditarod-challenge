@@ -47,12 +47,7 @@ const styles = `
     --white: #f5f0e8;
   }
 
-  body, #root {
-    min-height: 100vh;
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Source Serif 4', Georgia, serif;
-  }
+  body, #root { min-height: 100vh; background: var(--bg); color: var(--text); font-family: 'Source Serif 4', Georgia, serif; }
 
   .app {
     min-height: 100vh;
@@ -64,167 +59,80 @@ const styles = `
 
   .header {
     position: sticky; top: 0; z-index: 100;
-    background: rgba(13,26,15,0.92);
-    backdrop-filter: blur(12px);
+    background: rgba(13,26,15,0.92); backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
-    padding: 16px 28px;
-    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 28px; display: flex; align-items: center; justify-content: space-between;
   }
   .header-brand { display: flex; flex-direction: column; gap: 3px; }
-  .header-eyebrow {
-    font-family: 'Courier Prime', monospace;
-    font-size: 9px; letter-spacing: 0.35em; text-transform: uppercase; color: var(--gold);
-  }
-  .header-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 20px; font-weight: 900; color: var(--white); letter-spacing: -0.01em; line-height: 1;
-  }
+  .header-eyebrow { font-family: 'Courier Prime', monospace; font-size: 9px; letter-spacing: 0.35em; text-transform: uppercase; color: var(--gold); }
+  .header-title { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 900; color: var(--white); letter-spacing: -0.01em; line-height: 1; }
   .header-right { display: flex; align-items: center; gap: 16px; }
-  .live-badge {
-    display: flex; align-items: center; gap: 7px;
-    font-family: 'Courier Prime', monospace;
-    font-size: 10px; letter-spacing: 0.2em; color: var(--green-light); text-transform: uppercase;
-  }
-  .live-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--green-light);
-    animation: pulse 2s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%,100% { opacity: 1; transform: scale(1); }
-    50%      { opacity: .35; transform: scale(.75); }
-  }
-  .refresh-btn {
-    font-family: 'Courier Prime', monospace;
-    font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
-    padding: 6px 14px; background: transparent;
-    border: 1px solid var(--border); border-radius: 2px;
-    color: var(--text-muted); cursor: pointer; transition: border-color .2s, color .2s;
-  }
+  .live-badge { display: flex; align-items: center; gap: 7px; font-family: 'Courier Prime', monospace; font-size: 10px; letter-spacing: 0.2em; color: var(--green-light); text-transform: uppercase; }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green-light); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.35; transform:scale(.75); } }
+  .refresh-btn { font-family: 'Courier Prime', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; padding: 6px 14px; background: transparent; border: 1px solid var(--border); border-radius: 2px; color: var(--text-muted); cursor: pointer; transition: border-color .2s, color .2s; }
   .refresh-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .main { max-width: 860px; margin: 0 auto; padding: 36px 20px 80px; }
 
-  .status-bar {
-    display: flex; align-items: center; gap: 10px;
-    padding: 11px 18px; border-radius: 2px; margin-bottom: 20px;
-    font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: .04em;
-  }
-  .status-loading {
-    background: rgba(74,144,96,.07); border: 1px solid rgba(74,144,96,.2); color: var(--green-light);
-  }
-  .status-error {
-    background: rgba(201,90,58,.07); border: 1px solid rgba(201,90,58,.22); color: #e8866a;
-  }
-  .spinner {
-    width:13px; height:13px; flex-shrink:0;
-    border: 2px solid rgba(106,184,126,.2); border-top-color: var(--green-light);
-    border-radius: 50%; animation: spin .75s linear infinite;
-  }
+  .status-bar { display: flex; align-items: center; gap: 10px; padding: 11px 18px; border-radius: 2px; margin-bottom: 20px; font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: .04em; }
+  .status-loading { background: rgba(74,144,96,.07); border: 1px solid rgba(74,144,96,.2); color: var(--green-light); }
+  .status-error { background: rgba(201,90,58,.07); border: 1px solid rgba(201,90,58,.22); color: #e8866a; }
+  .spinner { width:13px; height:13px; flex-shrink:0; border: 2px solid rgba(106,184,126,.2); border-top-color: var(--green-light); border-radius: 50%; animation: spin .75s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .timestamp {
-    text-align: center; font-family: 'Courier Prime', monospace;
-    font-size: 10px; letter-spacing: .12em; color: var(--text-muted); margin-bottom: 28px;
-  }
+  .timestamp { text-align: center; font-family: 'Courier Prime', monospace; font-size: 10px; letter-spacing: .12em; color: var(--text-muted); margin-bottom: 28px; }
 
   .family-board { display: flex; flex-direction: column; gap: 18px; margin-bottom: 52px; }
 
-  .family-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 3px; overflow: hidden;
-    animation: rise .45s ease both;
-  }
+  .family-card { background: var(--surface); border: 1px solid var(--border); border-radius: 3px; overflow: hidden; animation: rise .45s ease both; }
   .family-card.is-leading { border-color: var(--gold); box-shadow: 0 0 28px rgba(201,151,58,.10); }
-  @keyframes rise {
-    from { opacity:0; transform:translateY(10px); }
-    to   { opacity:1; transform:translateY(0); }
-  }
+  @keyframes rise { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 
-  .card-header {
-    display: flex; align-items: center; gap: 14px;
-    padding: 15px 20px; border-bottom: 1px solid var(--border);
-  }
-  .rank-num {
-    font-family: 'Playfair Display', serif; font-weight: 900; font-size: 34px;
-    line-height: 1; width: 40px; flex-shrink: 0; color: var(--border);
-  }
+  .card-header { display: flex; align-items: center; gap: 14px; padding: 15px 20px; border-bottom: 1px solid var(--border); }
+  .rank-num { font-family: 'Playfair Display', serif; font-weight: 900; font-size: 34px; line-height: 1; width: 40px; flex-shrink: 0; color: var(--border); }
   .rank-num.r1 { color: var(--gold); }
   .rank-num.r2 { color: #888; }
   .rank-num.r3 { color: #7a5530; }
   .card-family { flex: 1; min-width: 0; }
-  .family-name {
-    font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700;
-    color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
+  .family-name { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .card-avg { text-align: right; flex-shrink: 0; }
-  .avg-label {
-    font-family: 'Courier Prime', monospace; font-size: 8px;
-    letter-spacing: .28em; text-transform: uppercase; color: var(--text-muted);
-    display: block; margin-bottom: 2px;
-  }
-  .avg-value {
-    font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 900;
-    line-height: 1; color: var(--gold);
-  }
+  .avg-label { font-family: 'Courier Prime', monospace; font-size: 8px; letter-spacing: .28em; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 2px; }
+  .avg-value { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 900; line-height: 1; color: var(--gold); }
   .avg-value.tbd { font-size: 16px; color: var(--text-muted); font-style: italic; font-weight: 400; }
 
   .musher-list { padding: 2px 0; }
-  .musher-row {
-    display: flex; align-items: center; gap: 12px;
-    padding: 9px 20px; border-bottom: 1px solid rgba(42,74,48,.35);
-    transition: background .15s;
-  }
+  .musher-row { display: flex; align-items: center; gap: 12px; padding: 9px 20px; border-bottom: 1px solid rgba(42,74,48,.35); transition: background .15s; }
   .musher-row:last-child { border-bottom: none; }
   .musher-row:hover { background: rgba(255,255,255,.018); }
-  .m-place {
-    font-family: 'Courier Prime', monospace; font-size: 13px; font-weight: 700;
-    width: 36px; flex-shrink: 0; text-align: center; color: var(--green-light);
-  }
-  .m-place.tbd  { color: var(--text-muted); }
+  .m-place { font-family: 'Courier Prime', monospace; font-size: 13px; font-weight: 700; width: 36px; flex-shrink: 0; text-align: center; color: var(--green-light); }
+  .m-place.tbd { color: var(--text-muted); }
   .m-name { flex: 1; font-size: 14px; color: var(--text); }
   .m-checkpoint { font-family: 'Courier Prime', monospace; font-size: 11px; color: var(--text-muted); }
 
   .section-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-  .section-label {
-    font-family: 'Courier Prime', monospace; font-size: 9px;
-    letter-spacing: .28em; text-transform: uppercase; color: var(--text-muted); white-space: nowrap;
-  }
+  .section-label { font-family: 'Courier Prime', monospace; font-size: 9px; letter-spacing: .28em; text-transform: uppercase; color: var(--text-muted); white-space: nowrap; }
   .section-rule { flex: 1; height: 1px; background: var(--border); }
-  .toggle-btn {
-    font-family: 'Courier Prime', monospace; font-size: 9px;
-    letter-spacing: .15em; text-transform: uppercase;
-    padding: 5px 12px; background: transparent;
-    border: 1px solid var(--border); border-radius: 2px;
-    color: var(--text-muted); cursor: pointer; transition: border-color .2s, color .2s;
-    white-space: nowrap;
-  }
+  .toggle-btn { font-family: 'Courier Prime', monospace; font-size: 9px; letter-spacing: .15em; text-transform: uppercase; padding: 5px 12px; background: transparent; border: 1px solid var(--border); border-radius: 2px; color: var(--text-muted); cursor: pointer; transition: border-color .2s, color .2s; white-space: nowrap; }
   .toggle-btn:hover { border-color: var(--gold); color: var(--gold); }
 
   .standings-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .standings-table th {
-    font-family: 'Courier Prime', monospace; font-size: 8px;
-    letter-spacing: .22em; text-transform: uppercase;
-    color: var(--text-muted); font-weight: 400;
-    padding: 7px 12px; text-align: left; border-bottom: 1px solid var(--border);
-  }
-  .standings-table td {
-    padding: 8px 12px; border-bottom: 1px solid rgba(42,74,48,.28);
-    color: var(--text); vertical-align: middle;
-  }
+  .standings-table th { font-family: 'Courier Prime', monospace; font-size: 8px; letter-spacing: .22em; text-transform: uppercase; color: var(--text-muted); font-weight: 400; padding: 7px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  .standings-table td { padding: 8px 12px; border-bottom: 1px solid rgba(42,74,48,.28); color: var(--text); vertical-align: middle; }
   .standings-table tr:last-child td { border-bottom: none; }
   .standings-table tr:hover td { background: rgba(255,255,255,.018); }
   .col-place { font-family: 'Courier Prime', monospace; font-weight: 700; color: var(--green-light); width: 50px; }
-  .col-name  { font-size: 14px; }
+  .col-name { font-size: 14px; }
   .col-checkpoint { font-family: 'Courier Prime', monospace; font-size: 11px; color: var(--text-muted); }
   .standings-table tr.hl td { background: rgba(201,151,58,.07); }
   .standings-table tr.hl .col-name { color: var(--gold-light); }
 
   @media (max-width: 580px) {
     .header-title { font-size: 16px; }
-    .family-name  { font-size: 16px; }
-    .avg-value    { font-size: 20px; }
-    .rank-num     { font-size: 26px; width: 32px; }
+    .family-name { font-size: 16px; }
+    .avg-value { font-size: 20px; }
+    .rank-num { font-size: 26px; width: 32px; }
     .m-checkpoint, .col-checkpoint { display: none; }
   }
 `;
@@ -243,123 +151,71 @@ function matchMusher(teamName, standingsName) {
   return false;
 }
 
-// Use Claude API to fetch and parse the standings page, bypassing CORS
-async function fetchStandingsViaAPI() {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1000,
-      tools: [{ type: "web_search_20250305", name: "web_search" }],
-      messages: [
-        {
-          role: "user",
-          content: `Search for the current 2026 Iditarod race standings at iditarod.com/race/2026/standings and return ONLY a JSON array with no explanation, no markdown, no code blocks. Each item should have: place (number), name (string), checkpoint (string). Example format: [{"place":1,"name":"Jessie Holmes","checkpoint":"Finger Lake"}]. Return only the JSON array, nothing else.`,
-        },
-      ],
-    }),
+// Parse the iditarod.com standings table HTML
+// Column layout: Pos | Musher | Bib | Checkpoint | In Time | In Dogs | Out Time | Out Dogs | ...
+function parseStandingsHTML(html) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const rows = doc.querySelectorAll("table tr");
+  const results = [];
+  rows.forEach((row) => {
+    const cells = row.querySelectorAll("td");
+    if (cells.length < 4) return;
+    const place = parseInt(cells[0]?.textContent?.trim(), 10);
+    if (isNaN(place)) return;
+    const name = cells[1]?.textContent?.trim().replace(/\s+/g, " ");
+    const checkpoint = cells[3]?.textContent?.trim();
+    if (name && checkpoint) {
+      results.push({ place, name, checkpoint });
+    }
   });
-
-  if (!response.ok) throw new Error(`API error ${response.status}`);
-  const data = await response.json();
-
-  // Extract text from response
-  const text = data.content
-    .filter((b) => b.type === "text")
-    .map((b) => b.text)
-    .join("");
-
-  // Parse JSON — strip any accidental markdown fences
-  const clean = text.replace(/```json|```/g, "").trim();
-  // Find the JSON array in the response
-  const match = clean.match(/\[[\s\S]*\]/);
-  if (!match) throw new Error("No JSON array found in response");
-  return JSON.parse(match[0]);
+  return results;
 }
 
-// Also try direct CORS proxies as fallback
-async function fetchStandingsDirect() {
+async function fetchStandings() {
   const proxies = [
     `https://corsproxy.io/?url=${encodeURIComponent(STANDINGS_URL)}`,
     `https://api.allorigins.win/get?url=${encodeURIComponent(STANDINGS_URL)}`,
+    `https://cors-anywhere.herokuapp.com/${STANDINGS_URL}`,
   ];
+
   for (const url of proxies) {
     try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
+      const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
       if (!res.ok) continue;
       const ct = res.headers.get("content-type") || "";
-      let html = ct.includes("json") ? (await res.json())?.contents : await res.text();
+      let html = ct.includes("json")
+        ? (await res.json())?.contents
+        : await res.text();
       if (!html) continue;
-      const data = parseHTML(html);
+      const data = parseStandingsHTML(html);
       if (data.length > 0) return data;
     } catch (_) {}
   }
   return null;
 }
 
-function parseHTML(html) {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const result = [];
-  doc.querySelectorAll("table tr").forEach((row) => {
-    const cells = row.querySelectorAll("td");
-    if (cells.length < 2) return;
-    const place = parseInt(cells[0]?.textContent?.trim(), 10);
-    if (isNaN(place)) return;
-    const name = (cells[1]?.textContent?.trim() || cells[2]?.textContent?.trim() || "").replace(/\s+/g, " ");
-    const checkpoint = cells[cells.length - 2]?.textContent?.trim() || "";
-    if (name) result.push({ place, name, checkpoint });
-  });
-  return result;
-}
-
-async function fetchStandings() {
-  // Try direct CORS proxy first (faster)
-  const direct = await fetchStandingsDirect();
-  if (direct && direct.length > 0) return direct;
-  // Fall back to Claude API
-  return await fetchStandingsViaAPI();
-}
-
-// ─── DEMO DATA ────────────────────────────────────────────────────────────────
+// ─── CURRENT DEMO DATA (as of March 10, 2026) ─────────────────────────────────
 const DEMO = [
-  { place: 1,  name: "Jessie Holmes",        checkpoint: "Skwentna" },
-  { place: 2,  name: "Matt Hall",             checkpoint: "Skwentna" },
-  { place: 3,  name: "Paige Drobny",          checkpoint: "Finger Lake" },
-  { place: 4,  name: "Ryan Redington",        checkpoint: "Finger Lake" },
-  { place: 5,  name: "Mille Porsild",         checkpoint: "Finger Lake" },
-  { place: 6,  name: "Travis Beals",          checkpoint: "Rainy Pass" },
-  { place: 7,  name: "Thomas Wærner",         checkpoint: "Rainy Pass" },
-  { place: 8,  name: "Peter Kaiser",          checkpoint: "Rohn" },
-  { place: 9,  name: "Wade Marrs",            checkpoint: "Rohn" },
-  { place: 10, name: "Richie Diehl",          checkpoint: "Rohn" },
-  { place: 11, name: "Brent Sass",            checkpoint: "Rohn" },
-  { place: 12, name: "Aaron Burmeister",      checkpoint: "Rohn" },
-  { place: 13, name: "Lauro Eklund",          checkpoint: "Willow" },
-  { place: 14, name: "Jessie Royer",          checkpoint: "Willow" },
-  { place: 15, name: "Bailey Vitello",        checkpoint: "Willow" },
-  { place: 16, name: "Keaton Loebrich",       checkpoint: "Willow" },
-  { place: 17, name: "Chad Stoddard",         checkpoint: "Willow" },
-  { place: 18, name: "Rohn Buser",            checkpoint: "Willow" },
-  { place: 19, name: "Gabe Dunham",           checkpoint: "Willow" },
-  { place: 20, name: "Michelle Phillips",     checkpoint: "Willow" },
-  { place: 21, name: "Jeff Deeter",           checkpoint: "Willow" },
-  { place: 22, name: "Martin Apayauq Reitan", checkpoint: "Willow" },
-  { place: 23, name: "Anna Berington",        checkpoint: "Willow" },
-  { place: 24, name: "Kristy Berington",      checkpoint: "Willow" },
-  { place: 25, name: "Gunnar Johnson",        checkpoint: "Willow" },
-  { place: 26, name: "Joseph Sabin",          checkpoint: "Willow" },
-  { place: 27, name: "Riley Dyche",           checkpoint: "Willow" },
-  { place: 28, name: "Nathaniel Hamlyn",      checkpoint: "Willow" },
-  { place: 29, name: "Adam Lindenmuth",       checkpoint: "Willow" },
-  { place: 30, name: "Joey Hinkle",           checkpoint: "Willow" },
-  { place: 31, name: "Josi Shelley",          checkpoint: "Willow" },
-  { place: 32, name: "Sadie Delia",           checkpoint: "Willow" },
-  { place: 33, name: "Zach Steer",            checkpoint: "Willow" },
-  { place: 34, name: "Quince Mountain",       checkpoint: "Willow" },
-  { place: 35, name: "Lev Shvarts",           checkpoint: "Willow" },
-  { place: 36, name: "Hanna Lyrek",           checkpoint: "Willow" },
-  { place: 37, name: "Nicolas Petit",         checkpoint: "Willow" },
+  { place: 1,  name: "Mille Porsild",     checkpoint: "Rohn" },
+  { place: 2,  name: "Paige Drobny",      checkpoint: "Rohn" },
+  { place: 3,  name: "Jessie Holmes",     checkpoint: "Rohn" },
+  { place: 4,  name: "Ryan Redington",    checkpoint: "Rohn" },
+  { place: 5,  name: "Matt Hall",         checkpoint: "Rohn" },
+  { place: 6,  name: "Michelle Phillips", checkpoint: "Rohn" },
+  { place: 7,  name: "Travis Beals",      checkpoint: "Rohn" },
+  { place: 8,  name: "Riley Dyche",       checkpoint: "Rohn" },
+  { place: 9,  name: "Rohn Buser",        checkpoint: "Rohn" },
+  { place: 10, name: "Wade Marrs",        checkpoint: "Rohn" },
+  { place: 11, name: "Jessie Royer",      checkpoint: "Rohn" },
+  { place: 12, name: "Lauro Eklund",      checkpoint: "Rohn" },
+  { place: 13, name: "Peter Kaiser",      checkpoint: "Rohn" },
+  { place: 14, name: "Keaton Loebrich",   checkpoint: "Rohn" },
+  { place: 15, name: "Thomas Wærner",     checkpoint: "Rohn" },
+  { place: 16, name: "Jeff Deeter",       checkpoint: "Rainy Pass" },
+  { place: 17, name: "Chad Stoddard",     checkpoint: "Rainy Pass" },
+  { place: 18, name: "Hanna Lyrek",       checkpoint: "Rainy Pass" },
+  { place: 19, name: "Gabe Dunham",       checkpoint: "Rainy Pass" },
+  { place: 20, name: "Josi Shelley",      checkpoint: "Rainy Pass" },
 ];
 
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
@@ -374,17 +230,13 @@ export default function App() {
   const load = useCallback(async () => {
     setLoading(true);
     setErrorMsg(null);
-    try {
-      const data = await fetchStandings();
-      if (data && data.length > 0) {
-        setStandings(data);
-        setIsDemo(false);
-      } else {
-        throw new Error("Empty standings");
-      }
-    } catch (e) {
+    const data = await fetchStandings();
+    if (data && data.length > 0) {
+      setStandings(data);
+      setIsDemo(false);
+    } else {
       setIsDemo(true);
-      setErrorMsg("Showing estimated positions — live data will update automatically.");
+      setErrorMsg("Showing last known standings — will retry automatically.");
     }
     setUpdatedAt(new Date());
     setLoading(false);
@@ -401,7 +253,9 @@ export default function App() {
   const teamResults = TEAMS.map((team) => {
     const musherData = team.mushers.map((name) => {
       const entry = standings.find((s) => matchMusher(name, s.name));
-      return entry ? { ...entry, label: name } : { label: name, place: null, checkpoint: "" };
+      return entry
+        ? { ...entry, label: name }
+        : { label: name, place: null, checkpoint: "" };
     });
     const allPlaced = musherData.every((d) => d.place !== null);
     const avg = allPlaced
@@ -431,7 +285,7 @@ export default function App() {
           <div className="header-right">
             <div className="live-badge">
               <div className="live-dot" />
-              {loading ? "Updating…" : "Live"}
+              {loading ? "Updating…" : isDemo ? "Cached" : "Live"}
             </div>
             <button className="refresh-btn" onClick={load} disabled={loading}>
               ↻ Refresh
@@ -451,8 +305,8 @@ export default function App() {
           )}
           {updatedAt && !loading && (
             <p className="timestamp">
-              {isDemo ? "Demo data · " : ""}
-              Last updated {updatedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              {isDemo ? "Last known standings · " : "Live · "}
+              Updated {updatedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               {" · "}Auto-refreshes every 5 min
             </p>
           )}
@@ -507,7 +361,7 @@ export default function App() {
                 <tr>
                   <th>Place</th>
                   <th>Musher</th>
-                  <th>Last Checkpoint</th>
+                  <th>Checkpoint</th>
                 </tr>
               </thead>
               <tbody>
