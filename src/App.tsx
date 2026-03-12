@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 // ─── TEAMS ────────────────────────────────────────────────────────────────────
 const TEAMS = [
-  { id: 1, name: "Kevin, Jennika & Family", emoji: "🐺", mushers: ["Jessie Holmes", "Thomas Wærner", "Mille Porsild"] },
+  { id: 1, name: "Kevin, Jennika & Family", emoji: "🐺", mushers: ["Jessie Holmes", "Jessie Royer", "Mille Porsild"] },
   { id: 2, name: "Andrew, Jessica & Family", emoji: "🦅", mushers: ["Matt Hall", "Travis Beals", "Jeff Deeter"] },
   { id: 3, name: "David & Debbie", emoji: "🐻", mushers: ["Paige Drobny", "Ryan Redington", "Peter Kaiser"] },
   { id: 4, name: "Adam, Jana & Family", emoji: "🦌", mushers: ["Rohn Buser", "Michelle Phillips", "Wade Marrs"] },
@@ -55,7 +55,6 @@ const DEMO = [
   { place: 12, name: "Lauro Eklund",      checkpoint: "Rohn", inTime: "3/10 00:20:00", dogs: "14", timeEnroute: "7h 39m", speed: "4.60" },
   { place: 13, name: "Peter Kaiser",      checkpoint: "Rohn", inTime: "3/10 00:30:00", dogs: "16", timeEnroute: "7h 49m", speed: "4.50" },
   { place: 14, name: "Keaton Loebrich",   checkpoint: "Rohn", inTime: "3/10 00:40:00", dogs: "15", timeEnroute: "7h 59m", speed: "4.40" },
-  { place: 15, name: "Thomas Wærner",     checkpoint: "Rohn", inTime: "3/10 01:00:00", dogs: "16", timeEnroute: "8h 19m", speed: "4.20" },
   { place: 16, name: "Jeff Deeter",       checkpoint: "Rainy Pass", inTime: "3/9 18:00:00", dogs: "14", timeEnroute: "5h 36m", speed: "5.20" },
   { place: 17, name: "Chad Stoddard",     checkpoint: "Rainy Pass", inTime: "3/9 18:30:00", dogs: "15", timeEnroute: "6h 6m",  speed: "4.90" },
   { place: 18, name: "Hanna Lyrek",       checkpoint: "Rainy Pass", inTime: "3/9 19:00:00", dogs: "14", timeEnroute: "6h 36m", speed: "4.60" },
