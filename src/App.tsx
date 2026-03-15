@@ -118,26 +118,74 @@ async function fetchStandings() {
   return null;
 }
 
-// ─── CLOUD GPS STORAGE (shared across all devices) ───────────────────────────
-const GPS_CLOUD_KEY  = "gps_standings_v1";
-const GPS_CLOUD_TIME = "gps_updated_v1";
+// ─── GITHUB STORAGE (shared across all devices) ──────────────────────────────
+const GH_REPO  = "andrewdylanlee/iditarod-challenge";
+const GH_FILE  = "gps-standings.json";
+const GH_RAW   = `https://raw.githubusercontent.com/${GH_REPO}/main/${GH_FILE}`;
+const GH_API   = `https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`;
+const TOKEN_KEY = "iditarod_gh_token";
 
-async function cloudGet(key) {
+function getToken() {
+  try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; }
+}
+function saveToken(t) {
+  try { localStorage.setItem(TOKEN_KEY, t); } catch {}
+}
+function clearToken() {
+  try { localStorage.removeItem(TOKEN_KEY); } catch {}
+}
+
+async function ghRead() {
   try {
-    const r = await window.storage.get(key, true);
-    return r ? r.value : null;
+    const res = await fetch(GH_RAW + "?t=" + Date.now());
+    if (!res.ok) return null;
+    return await res.json();
   } catch { return null; }
 }
 
-async function cloudSet(key, value) {
+async function ghWrite(data) {
+  const token = getToken();
+  if (!token) return false;
   try {
-    await window.storage.set(key, value, true);
-    return true;
+    // Get current file SHA (needed to update)
+    let sha = null;
+    const check = await fetch(GH_API, {
+      headers: { Authorization: `token ${token}`, Accept: "application/vnd.github.v3+json" }
+    });
+    if (check.ok) {
+      const info = await check.json();
+      sha = info.sha;
+    }
+    const body = { message: "Update GPS standings", content: btoa(JSON.stringify(data)) };
+    if (sha) body.sha = sha;
+    const res = await fetch(GH_API, {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: "application/vnd.github.v3+json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    return res.ok;
   } catch { return false; }
 }
 
-async function cloudDelete(key) {
-  try { await window.storage.delete(key, true); } catch {}
+async function ghDelete() {
+  const token = getToken();
+  if (!token) return;
+  try {
+    const check = await fetch(GH_API, {
+      headers: { Authorization: `token ${token}`, Accept: "application/vnd.github.v3+json" }
+    });
+    if (!check.ok) return;
+    const info = await check.json();
+    await fetch(GH_API, {
+      method: "DELETE",
+      headers: { Authorization: `token ${token}`, Accept: "application/vnd.github.v3+json", "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Clear GPS standings", sha: info.sha }),
+    });
+  } catch {}
 }
 
 // ─── STYLES ───────────────────────────────────────────────────────────────────
@@ -355,6 +403,15 @@ const styles = `
   .pin-error-msg { font-family:'Courier Prime',monospace; font-size:11px; color:var(--red); letter-spacing:.08em; height:16px; }
   .pin-lock-btn { font-family:'Courier Prime',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; padding:5px 10px; background:transparent; border:1px solid var(--border); border-radius:2px; color:var(--text-muted); cursor:pointer; margin-left:auto; display:block; margin-bottom:12px; }
   .pin-lock-btn:hover { border-color:var(--red); color:var(--red); }
+  .token-setup { padding:32px 28px; }
+  .token-setup-title { font-family:'Playfair Display',serif; font-size:18px; font-weight:700; color:var(--white); margin-bottom:8px; }
+  .token-setup-hint { font-family:'Courier Prime',monospace; font-size:11px; color:var(--text-muted); letter-spacing:.06em; line-height:1.7; margin-bottom:20px; }
+  .token-row { display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; }
+  .token-input { font-family:'Courier Prime',monospace; font-size:12px; color:var(--text); background:var(--surface-lift); border:1px solid var(--border); border-radius:2px; padding:9px 12px; flex:1; min-width:200px; outline:none; transition:border-color .15s; }
+  .token-input:focus { border-color:var(--gold); }
+  .token-error { font-family:'Courier Prime',monospace; font-size:10px; color:var(--red); margin-top:8px; letter-spacing:.04em; }
+  .token-revoke { font-family:'Courier Prime',monospace; font-size:9px; letter-spacing:.12em; text-transform:uppercase; padding:5px 10px; background:transparent; border:1px solid var(--border); border-radius:2px; color:var(--text-muted); cursor:pointer; margin-top:16px; }
+  .token-revoke:hover { border-color:var(--red); color:var(--red); }
 
   .toggle-btn { font-family:'Courier Prime',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; padding:5px 12px; background:transparent; border:1px solid var(--border); border-radius:2px; color:var(--text-muted); cursor:pointer; transition:border-color .2s,color .2s; }
   .toggle-btn:hover { border-color:var(--gold); color:var(--gold); }
@@ -393,7 +450,7 @@ export default function App() {
   const notifWorkerRef                  = useRef(null);
 
   // GPS PIN lock
-  const GPS_PIN = "0624";  // ← change this to whatever you want
+  const GPS_PIN = "0624";
   const [pinUnlocked, setPinUnlocked] = useState(false);
   const [pinInput, setPinInput]       = useState("");
   const [pinError, setPinError]       = useState(false);
@@ -410,30 +467,29 @@ export default function App() {
     }
   };
 
-  // GPS manual standings state — stored in cloud so all devices stay in sync
+  // GPS manual standings state — written to GitHub, readable by all devices
   const allTeamMushers  = TEAMS.flatMap(t => t.mushers.map(m => ({ name: m, team: t.name })));
   const emptyGps        = allTeamMushers.map(m => ({ name: m.name, place: "", checkpoint: "" }));
   const [useGps, setUseGps]             = useState(false);
   const [gpsStandings, setGpsStandings] = useState(emptyGps);
   const [gpsUpdatedAt, setGpsUpdatedAt] = useState(null);
   const [gpsSaveToast, setGpsSaveToast] = useState(false);
+  const [gpsSaving, setGpsSaving]       = useState(false);
   const [gpsLoading, setGpsLoading]     = useState(true);
+  const [hasToken, setHasToken]         = useState(() => !!getToken());
+  const [tokenInput, setTokenInput]     = useState("");
+  const [tokenError, setTokenError]     = useState("");
 
-  // Load GPS data from cloud on mount — works on every device
+  // Load GPS data from GitHub on mount — works on every device, no auth needed to read
   useEffect(() => {
     (async () => {
       try {
-        const [savedData, savedTime, savedUse] = await Promise.all([
-          cloudGet(GPS_CLOUD_KEY),
-          cloudGet(GPS_CLOUD_TIME),
-          cloudGet("gps_use_v1"),
-        ]);
-        if (savedData) {
-          const parsed = JSON.parse(savedData);
-          setGpsStandings(parsed);
+        const data = await ghRead();
+        if (data) {
+          if (data.standings) setGpsStandings(data.standings);
+          if (data.updatedAt) setGpsUpdatedAt(data.updatedAt);
+          if (data.useGps) setUseGps(true);
         }
-        if (savedTime) setGpsUpdatedAt(savedTime);
-        if (savedUse === "true") setUseGps(true);
       } catch {}
       setGpsLoading(false);
     })();
@@ -550,24 +606,44 @@ export default function App() {
   }, []);
 
   const saveGpsStandings = async () => {
+    setGpsSaving(true);
     const now = new Date().toLocaleString("en-US", {
       timeZone: "America/Los_Angeles", month: "numeric", day: "numeric",
       hour: "2-digit", minute: "2-digit", hour12: true
     }) + " PDT";
-    await Promise.all([
-      cloudSet(GPS_CLOUD_KEY, JSON.stringify(gpsStandings)),
-      cloudSet(GPS_CLOUD_TIME, now),
-      cloudSet("gps_use_v1", "true"),
-    ]);
-    setGpsUpdatedAt(now);
-    if (!useGps) setUseGps(true);
-    setGpsSaveToast(true);
-    setTimeout(() => setGpsSaveToast(false), 3500);
+    const payload = { standings: gpsStandings, updatedAt: now, useGps: true };
+    const ok = await ghWrite(payload);
+    if (ok) {
+      setGpsUpdatedAt(now);
+      if (!useGps) setUseGps(true);
+      setGpsSaveToast(true);
+      setTimeout(() => setGpsSaveToast(false), 3500);
+    } else {
+      alert("Save failed — check that your token is correct and has public_repo access.");
+    }
+    setGpsSaving(false);
   };
 
-  const toggleSource = async (val) => {
-    setUseGps(val);
-    await cloudSet("gps_use_v1", String(val));
+  const toggleSource = (val) => setUseGps(val);
+
+  const submitToken = async () => {
+    const t = tokenInput.trim();
+    if (!t.startsWith("ghp_") && !t.startsWith("github_pat_")) {
+      setTokenError("That doesn't look like a valid GitHub token (should start with ghp_)");
+      return;
+    }
+    // Quick validation — try a read with it
+    const res = await fetch(GH_API, {
+      headers: { Authorization: `token ${t}`, Accept: "application/vnd.github.v3+json" }
+    }).catch(() => null);
+    if (res && (res.ok || res.status === 404)) {
+      saveToken(t);
+      setHasToken(true);
+      setTokenInput("");
+      setTokenError("");
+    } else {
+      setTokenError("Token validation failed — make sure it has public_repo access.");
+    }
   };
 
   // ─── Trail Map rendering ──────────────────────────────────────────────────
@@ -907,6 +983,30 @@ export default function App() {
                     <div className="pin-gate-hint">Loading standings…</div>
                   </div>
                 </div>
+              ) : !hasToken ? (
+                /* ── Token setup (first-time, admin device only) ── */
+                <div className="gps-editor">
+                  <div className="token-setup">
+                    <div className="token-setup-title">🔑 One-time setup</div>
+                    <div className="token-setup-hint">
+                      This is the admin device for updating GPS standings.<br/>
+                      Paste your GitHub personal access token below.<br/>
+                      It stays on this device only — no one else sees it.
+                    </div>
+                    <div className="token-row">
+                      <input
+                        className="token-input"
+                        type="password"
+                        placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                        value={tokenInput}
+                        onChange={e => { setTokenInput(e.target.value); setTokenError(""); }}
+                        onKeyDown={e => e.key === "Enter" && submitToken()}
+                      />
+                      <button className="pin-submit" onClick={submitToken}>Save token</button>
+                    </div>
+                    {tokenError && <div className="token-error">⚠ {tokenError}</div>}
+                  </div>
+                </div>
               ) : !pinUnlocked ? (
                 /* ── PIN gate ── */
                 <div className="gps-editor">
@@ -986,8 +1086,8 @@ export default function App() {
                         );
                       })}
                     </div>
-                    <button className="gps-save-btn" onClick={saveGpsStandings}>
-                      💾 Save &amp; Apply GPS Standings
+                    <button className="gps-save-btn" onClick={saveGpsStandings} disabled={gpsSaving}>
+                      {gpsSaving ? "⏳ Saving to GitHub…" : "💾 Save & Apply GPS Standings"}
                     </button>
                     {gpsSaveToast && (
                       <div className="gps-save-toast">
@@ -999,19 +1099,24 @@ export default function App() {
                   {gpsStandings.some(g => g.place) && (
                     <div style={{ textAlign:"center" }}>
                       <button className="toggle-btn" onClick={async () => {
+                        if (!confirm("Clear all GPS standings and revert to official site?")) return;
                         setGpsStandings(emptyGps);
                         setUseGps(false);
                         setGpsUpdatedAt(null);
-                        await Promise.all([
-                          cloudDelete(GPS_CLOUD_KEY),
-                          cloudDelete(GPS_CLOUD_TIME),
-                          cloudSet("gps_use_v1", "false"),
-                        ]);
+                        await ghDelete();
                       }}>
                         Clear GPS data &amp; revert to official standings
                       </button>
                     </div>
                   )}
+                  <div style={{textAlign:"center", marginTop:16}}>
+                    <button className="token-revoke" onClick={() => {
+                      if (!confirm("Remove saved token from this device?")) return;
+                      clearToken();
+                      setHasToken(false);
+                      setPinUnlocked(false);
+                    }}>Remove saved token from this device</button>
+                  </div>
                 </>
               )}
             </div>
