@@ -99,18 +99,15 @@ function parseStandingsHTML(html) {
 }
 
 async function fetchStandings() {
-  // corsproxy.io blocks HTML — use proxies that allow it
+  // Use proxies confirmed to work on all browsers including Safari
   const proxies = [
     { url: `https://api.allorigins.win/get?url=${encodeURIComponent(STANDINGS_URL)}`, json: true },
+    { url: `https://api.allorigins.win/raw?url=${encodeURIComponent(STANDINGS_URL)}`, json: false },
     { url: `https://thingproxy.freeboard.io/fetch/${STANDINGS_URL}`, json: false },
-    { url: `https://proxy.cors.sh/${STANDINGS_URL}`, json: false, headers: { "x-requested-with": "XMLHttpRequest" } },
   ];
   for (const proxy of proxies) {
     try {
-      const res = await fetch(proxy.url, {
-        signal: AbortSignal.timeout(15000),
-        headers: proxy.headers || {},
-      });
+      const res = await fetch(proxy.url, { signal: AbortSignal.timeout(18000) });
       if (!res.ok) continue;
       let html = proxy.json ? (await res.json())?.contents : await res.text();
       if (!html || html.length < 500) continue;
@@ -119,6 +116,28 @@ async function fetchStandings() {
     } catch (_) {}
   }
   return null;
+}
+
+// ─── CLOUD GPS STORAGE (shared across all devices) ───────────────────────────
+const GPS_CLOUD_KEY  = "gps_standings_v1";
+const GPS_CLOUD_TIME = "gps_updated_v1";
+
+async function cloudGet(key) {
+  try {
+    const r = await window.storage.get(key, true);
+    return r ? r.value : null;
+  } catch { return null; }
+}
+
+async function cloudSet(key, value) {
+  try {
+    await window.storage.set(key, value, true);
+    return true;
+  } catch { return false; }
+}
+
+async function cloudDelete(key) {
+  try { await window.storage.delete(key, true); } catch {}
 }
 
 // ─── STYLES ───────────────────────────────────────────────────────────────────
@@ -391,23 +410,34 @@ export default function App() {
     }
   };
 
-  // GPS manual standings state
-  const GPS_STORAGE_KEY = "iditarod_gps_standings";
-  const GPS_TIME_KEY    = "iditarod_gps_updated";
+  // GPS manual standings state — stored in cloud so all devices stay in sync
   const allTeamMushers  = TEAMS.flatMap(t => t.mushers.map(m => ({ name: m, team: t.name })));
-  const [useGps, setUseGps]             = useState(() => {
-    try { return localStorage.getItem("iditarod_use_gps") === "true"; } catch { return false; }
-  });
-  const [gpsStandings, setGpsStandings] = useState(() => {
-    try {
-      const saved = localStorage.getItem(GPS_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : allTeamMushers.map(m => ({ name: m.name, place: "", checkpoint: "" }));
-    } catch { return allTeamMushers.map(m => ({ name: m.name, place: "", checkpoint: "" })); }
-  });
-  const [gpsUpdatedAt, setGpsUpdatedAt] = useState(() => {
-    try { return localStorage.getItem(GPS_TIME_KEY) || null; } catch { return null; }
-  });
+  const emptyGps        = allTeamMushers.map(m => ({ name: m.name, place: "", checkpoint: "" }));
+  const [useGps, setUseGps]             = useState(false);
+  const [gpsStandings, setGpsStandings] = useState(emptyGps);
+  const [gpsUpdatedAt, setGpsUpdatedAt] = useState(null);
   const [gpsSaveToast, setGpsSaveToast] = useState(false);
+  const [gpsLoading, setGpsLoading]     = useState(true);
+
+  // Load GPS data from cloud on mount — works on every device
+  useEffect(() => {
+    (async () => {
+      try {
+        const [savedData, savedTime, savedUse] = await Promise.all([
+          cloudGet(GPS_CLOUD_KEY),
+          cloudGet(GPS_CLOUD_TIME),
+          cloudGet("gps_use_v1"),
+        ]);
+        if (savedData) {
+          const parsed = JSON.parse(savedData);
+          setGpsStandings(parsed);
+        }
+        if (savedTime) setGpsUpdatedAt(savedTime);
+        if (savedUse === "true") setUseGps(true);
+      } catch {}
+      setGpsLoading(false);
+    })();
+  }, []);
 
   // The active standings to use for display
   const activeStandings = useGps && gpsStandings.some(g => g.place)
@@ -519,24 +549,25 @@ export default function App() {
     return () => clearInterval(id);
   }, []);
 
-  const saveGpsStandings = () => {
-    try {
-      localStorage.setItem(GPS_STORAGE_KEY, JSON.stringify(gpsStandings));
-      const now = new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: true });
-      localStorage.setItem(GPS_TIME_KEY, now + " PDT");
-      setGpsUpdatedAt(now + " PDT");
-      if (!useGps) {
-        setUseGps(true);
-        localStorage.setItem("iditarod_use_gps", "true");
-      }
-      setGpsSaveToast(true);
-      setTimeout(() => setGpsSaveToast(false), 3500);
-    } catch {}
+  const saveGpsStandings = async () => {
+    const now = new Date().toLocaleString("en-US", {
+      timeZone: "America/Los_Angeles", month: "numeric", day: "numeric",
+      hour: "2-digit", minute: "2-digit", hour12: true
+    }) + " PDT";
+    await Promise.all([
+      cloudSet(GPS_CLOUD_KEY, JSON.stringify(gpsStandings)),
+      cloudSet(GPS_CLOUD_TIME, now),
+      cloudSet("gps_use_v1", "true"),
+    ]);
+    setGpsUpdatedAt(now);
+    if (!useGps) setUseGps(true);
+    setGpsSaveToast(true);
+    setTimeout(() => setGpsSaveToast(false), 3500);
   };
 
-  const toggleSource = (val) => {
+  const toggleSource = async (val) => {
     setUseGps(val);
-    try { localStorage.setItem("iditarod_use_gps", String(val)); } catch {}
+    await cloudSet("gps_use_v1", String(val));
   };
 
   // ─── Trail Map rendering ──────────────────────────────────────────────────
@@ -869,7 +900,14 @@ export default function App() {
                 <div className="section-rule" />
               </div>
 
-              {!pinUnlocked ? (
+              {gpsLoading ? (
+                <div className="gps-editor">
+                  <div className="pin-gate">
+                    <div className="spinner" style={{width:24,height:24,borderWidth:3}} />
+                    <div className="pin-gate-hint">Loading standings…</div>
+                  </div>
+                </div>
+              ) : !pinUnlocked ? (
                 /* ── PIN gate ── */
                 <div className="gps-editor">
                   <div className="pin-gate">
@@ -960,15 +998,15 @@ export default function App() {
 
                   {gpsStandings.some(g => g.place) && (
                     <div style={{ textAlign:"center" }}>
-                      <button className="toggle-btn" onClick={() => {
-                        setGpsStandings(allTeamMushers.map(m => ({ name: m.name, place: "", checkpoint: "" })));
+                      <button className="toggle-btn" onClick={async () => {
+                        setGpsStandings(emptyGps);
                         setUseGps(false);
-                        try {
-                          localStorage.removeItem(GPS_STORAGE_KEY);
-                          localStorage.removeItem(GPS_TIME_KEY);
-                          localStorage.setItem("iditarod_use_gps", "false");
-                        } catch {}
                         setGpsUpdatedAt(null);
+                        await Promise.all([
+                          cloudDelete(GPS_CLOUD_KEY),
+                          cloudDelete(GPS_CLOUD_TIME),
+                          cloudSet("gps_use_v1", "false"),
+                        ]);
                       }}>
                         Clear GPS data &amp; revert to official standings
                       </button>
