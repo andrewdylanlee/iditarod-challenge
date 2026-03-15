@@ -99,17 +99,21 @@ function parseStandingsHTML(html) {
 }
 
 async function fetchStandings() {
+  // corsproxy.io blocks HTML — use proxies that allow it
   const proxies = [
-    `https://corsproxy.io/?url=${encodeURIComponent(STANDINGS_URL)}`,
-    `https://api.allorigins.win/get?url=${encodeURIComponent(STANDINGS_URL)}`,
+    { url: `https://api.allorigins.win/get?url=${encodeURIComponent(STANDINGS_URL)}`, json: true },
+    { url: `https://thingproxy.freeboard.io/fetch/${STANDINGS_URL}`, json: false },
+    { url: `https://proxy.cors.sh/${STANDINGS_URL}`, json: false, headers: { "x-requested-with": "XMLHttpRequest" } },
   ];
-  for (const url of proxies) {
+  for (const proxy of proxies) {
     try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      const res = await fetch(proxy.url, {
+        signal: AbortSignal.timeout(15000),
+        headers: proxy.headers || {},
+      });
       if (!res.ok) continue;
-      const ct = res.headers.get("content-type") || "";
-      let html = ct.includes("json") ? (await res.json())?.contents : await res.text();
-      if (!html) continue;
+      let html = proxy.json ? (await res.json())?.contents : await res.text();
+      if (!html || html.length < 500) continue;
       const data = parseStandingsHTML(html);
       if (data.length > 0) return data;
     } catch (_) {}
@@ -283,7 +287,34 @@ const styles = `
   .notif-bar-text { font-family:'Courier Prime',monospace; font-size:11px; color:var(--gold-light); letter-spacing:.04em; }
   .notif-bar-actions { display:flex; gap:8px; flex-shrink:0; }
 
-  /* ── Section toggle ── */
+  /* ── GPS Manual Entry ── */
+  .gps-source-toggle { display:flex; align-items:center; gap:10px; padding:12px 18px; background:var(--gold-dim); border:1px solid rgba(201,151,58,.3); border-radius:2px; margin-bottom:20px; flex-wrap:wrap; }
+  .gps-toggle-label { font-family:'Courier Prime',monospace; font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--gold-light); flex:1; }
+  .gps-toggle-btns { display:flex; border:1px solid var(--border); border-radius:2px; overflow:hidden; }
+  .gps-toggle-btn { font-family:'Courier Prime',monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase; padding:6px 14px; background:transparent; border:none; color:var(--text-muted); cursor:pointer; transition:background .15s, color .15s; }
+  .gps-toggle-btn.on { background:var(--gold); color:#0d1a0f; font-weight:700; }
+  .gps-updated { font-family:'Courier Prime',monospace; font-size:10px; color:var(--text-muted); white-space:nowrap; }
+
+  .gps-editor { background:var(--surface); border:1px solid var(--border); border-radius:3px; margin-bottom:32px; overflow:hidden; }
+  .gps-editor-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 20px; border-bottom:1px solid var(--border); background:var(--surface-alt); }
+  .gps-editor-title { font-family:'Playfair Display',serif; font-size:16px; font-weight:700; color:var(--white); }
+  .gps-editor-hint { font-family:'Courier Prime',monospace; font-size:10px; color:var(--text-muted); letter-spacing:.06em; }
+  .gps-grid { display:grid; grid-template-columns:1fr 1fr; gap:0; }
+  @media(max-width:600px) { .gps-grid { grid-template-columns:1fr; } }
+  .gps-musher-row { display:grid; grid-template-columns:42px 1fr 80px 1fr; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid rgba(42,74,48,.3); }
+  .gps-musher-row:nth-child(odd) { background:rgba(255,255,255,.012); }
+  .gps-place-input { font-family:'Courier Prime',monospace; font-size:14px; font-weight:700; color:var(--green-light); background:var(--surface-lift); border:1px solid var(--border); border-radius:2px; padding:5px 8px; width:100%; text-align:center; outline:none; transition:border-color .15s; }
+  .gps-place-input:focus { border-color:var(--gold); color:var(--gold); }
+  .gps-musher-name { font-size:13px; color:var(--text); }
+  .gps-musher-team { font-family:'Courier Prime',monospace; font-size:9px; color:var(--text-muted); margin-top:2px; letter-spacing:.06em; }
+  .gps-cp-select { font-family:'Courier Prime',monospace; font-size:10px; color:var(--text); background:var(--surface-lift); border:1px solid var(--border); border-radius:2px; padding:5px 6px; width:100%; outline:none; cursor:pointer; transition:border-color .15s; }
+  .gps-cp-select:focus { border-color:var(--gold); }
+  .gps-save-btn { width:100%; padding:13px; font-family:'Courier Prime',monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase; background:var(--gold); color:#0d1a0f; border:none; cursor:pointer; font-weight:700; transition:background .15s; }
+  .gps-save-btn:hover { background:var(--gold-light); }
+  .gps-save-toast { text-align:center; padding:10px; font-family:'Courier Prime',monospace; font-size:10px; color:var(--green-light); letter-spacing:.1em; background:var(--green-dim); border-top:1px solid rgba(74,144,96,.2); animation:fadeOut 3s ease forwards; }
+  @keyframes fadeOut { 0%,60%{opacity:1} 100%{opacity:0} }
+
+
   .section-row { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
   .section-label { font-family:'Courier Prime',monospace; font-size:9px; letter-spacing:.28em; text-transform:uppercase; color:var(--text-muted); white-space:nowrap; }
   .section-rule2 { flex:1; height:1px; background:var(--border); }
@@ -316,12 +347,40 @@ export default function App() {
   const [updatedAt, setUpdatedAt]       = useState(null);
   const [activeTab, setActiveTab]       = useState("leaderboard");
   const [showFull, setShowFull]         = useState(false);
-  const [history, setHistory]           = useState([]);  // [{time, teamAvgs}]
-  const [notifState, setNotifState]     = useState("prompt"); // prompt | granted | denied | hidden
+  const [history, setHistory]           = useState([]);
+  const [notifState, setNotifState]     = useState("prompt");
   const [prevAvgs, setPrevAvgs]         = useState(null);
-  const [celebration, setCelebration]   = useState(null); // winner team
+  const [celebration, setCelebration]   = useState(null);
   const [hoveredTeam, setHoveredTeam]   = useState(null);
   const notifWorkerRef                  = useRef(null);
+
+  // GPS manual standings state
+  const GPS_STORAGE_KEY = "iditarod_gps_standings";
+  const GPS_TIME_KEY    = "iditarod_gps_updated";
+  const allTeamMushers  = TEAMS.flatMap(t => t.mushers.map(m => ({ name: m, team: t.name })));
+  const [useGps, setUseGps]             = useState(() => {
+    try { return localStorage.getItem("iditarod_use_gps") === "true"; } catch { return false; }
+  });
+  const [gpsStandings, setGpsStandings] = useState(() => {
+    try {
+      const saved = localStorage.getItem(GPS_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : allTeamMushers.map(m => ({ name: m.name, place: "", checkpoint: "" }));
+    } catch { return allTeamMushers.map(m => ({ name: m.name, place: "", checkpoint: "" })); }
+  });
+  const [gpsUpdatedAt, setGpsUpdatedAt] = useState(() => {
+    try { return localStorage.getItem(GPS_TIME_KEY) || null; } catch { return null; }
+  });
+  const [gpsSaveToast, setGpsSaveToast] = useState(false);
+
+  // The active standings to use for display
+  const activeStandings = useGps && gpsStandings.some(g => g.place)
+    ? gpsStandings.filter(g => g.place).map(g => ({
+        place: parseInt(g.place, 10),
+        name: g.name,
+        checkpoint: g.checkpoint || "",
+        dogs: "", timeEnroute: "", speed: "",
+      })).sort((a, b) => a.place - b.place)
+    : standings;
 
   // Check notification permission on mount
   useEffect(() => {
@@ -345,7 +404,7 @@ export default function App() {
 
   const teamResults = TEAMS.map(team => {
     const musherData = team.mushers.map(name => {
-      const entry = standings.find(s => matchMusher(name, s.name));
+      const entry = activeStandings.find(s => matchMusher(name, s.name));
       return entry ? { ...entry, label: name } : { label: name, place: null, checkpoint: "", dogs: "", timeEnroute: "" };
     }).sort((a, b) => {
       if (a.place === null && b.place === null) return 0;
@@ -423,9 +482,29 @@ export default function App() {
     return () => clearInterval(id);
   }, []);
 
+  const saveGpsStandings = () => {
+    try {
+      localStorage.setItem(GPS_STORAGE_KEY, JSON.stringify(gpsStandings));
+      const now = new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: true });
+      localStorage.setItem(GPS_TIME_KEY, now + " PDT");
+      setGpsUpdatedAt(now + " PDT");
+      if (!useGps) {
+        setUseGps(true);
+        localStorage.setItem("iditarod_use_gps", "true");
+      }
+      setGpsSaveToast(true);
+      setTimeout(() => setGpsSaveToast(false), 3500);
+    } catch {}
+  };
+
+  const toggleSource = (val) => {
+    setUseGps(val);
+    try { localStorage.setItem("iditarod_use_gps", String(val)); } catch {}
+  };
+
   // ─── Trail Map rendering ──────────────────────────────────────────────────
   const TrailMap = () => {
-    const furthestCP = standings.reduce((best, m) => {
+    const furthestCP = activeStandings.reduce((best, m) => {
       const miles = getCheckpointMiles(m.checkpoint);
       return miles > best ? miles : best;
     }, 0);
@@ -448,11 +527,11 @@ export default function App() {
               {/* Checkpoint dots */}
               {CHECKPOINTS.map((cp, i) => {
                 const pct = (cp.miles / TOTAL_MILES) * 100;
-                const reached = standings.some(m => {
+                const reached = activeStandings.some(m => {
                   const mMiles = getCheckpointMiles(m.checkpoint);
                   return mMiles >= cp.miles;
                 });
-                const isCurrent = standings.some(m => m.checkpoint === cp.name);
+                const isCurrent = activeStandings.some(m => m.checkpoint === cp.name);
                 return (
                   <div key={cp.name} className="cp-marker" style={{ left: `${pct}%` }}>
                     <div className={`cp-dot ${isCurrent ? "current" : reached ? "reached" : ""}`} />
@@ -464,7 +543,7 @@ export default function App() {
               {/* Musher dots — one per team musher */}
               {TEAMS.flatMap((team, ti) =>
                 team.mushers.map((name, mi) => {
-                  const entry = standings.find(s => matchMusher(name, s.name));
+                  const entry = activeStandings.find(s => matchMusher(name, s.name));
                   if (!entry) return null;
                   const miles = getCheckpointMiles(entry.checkpoint);
                   const pct = (miles / TOTAL_MILES) * 100;
@@ -642,7 +721,7 @@ export default function App() {
         </header>
 
         <nav className="tab-nav">
-          {[["leaderboard","🏆 Leaderboard"],["map","🗺 Trail Map"],["chart","📈 History"],["standings","📋 All Mushers"]].map(([id, label]) => (
+          {[["leaderboard","🏆 Leaderboard"],["map","🗺 Trail Map"],["chart","📈 History"],["gps","📡 GPS Entry"],["standings","📋 All Mushers"]].map(([id, label]) => (
             <button key={id} className={`tab-btn ${activeTab === id ? "active" : ""}`} onClick={() => setActiveTab(id)}>{label}</button>
           ))}
         </nav>
@@ -670,6 +749,20 @@ export default function App() {
               {isDemo ? "Last known standings · " : "Live · "}
               {updatedAt.toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })} · Auto-refreshes every 5 min
             </p>
+          )}
+
+          {/* GPS source toggle — show when GPS data exists */}
+          {gpsStandings.some(g => g.place) && activeTab !== "gps" && (
+            <div className="gps-source-toggle">
+              <span className="gps-toggle-label">
+                📡 Standings source
+                {useGps && gpsUpdatedAt && <span className="gps-updated"> · GPS updated {gpsUpdatedAt}</span>}
+              </span>
+              <div className="gps-toggle-btns">
+                <button className={`gps-toggle-btn ${useGps ? "on" : ""}`} onClick={() => toggleSource(true)}>GPS Tracker</button>
+                <button className={`gps-toggle-btn ${!useGps ? "on" : ""}`} onClick={() => toggleSource(false)}>Official Site</button>
+              </div>
+            </div>
           )}
 
           {/* ── Leaderboard tab ── */}
@@ -731,6 +824,94 @@ export default function App() {
             </div>
           )}
 
+          {/* ── GPS Manual Entry tab ── */}
+          {activeTab === "gps" && (
+            <div>
+              <div className="section-header">
+                <h2 className="section-title">GPS Tracker Entry</h2>
+                <div className="section-rule" />
+              </div>
+              <p style={{ fontFamily:"'Courier Prime',monospace", fontSize:11, color:"var(--text-muted)", letterSpacing:".06em", marginBottom:20 }}>
+                Enter current placements from the GPS tracker. Leave blank for any musher not yet placed. Hit Save to apply and switch everyone to GPS standings.
+              </p>
+              <div className="gps-editor">
+                <div className="gps-editor-header">
+                  <span className="gps-editor-title">Your 12 Mushers</span>
+                  <span className="gps-editor-hint">Place · Checkpoint (optional)</span>
+                </div>
+                <div className="gps-grid">
+                  {allTeamMushers.map((m, i) => {
+                    const g = gpsStandings[i] || { name: m.name, place: "", checkpoint: "" };
+                    const teamObj = TEAMS.find(t => t.name === m.team);
+                    const ti = TEAMS.indexOf(teamObj);
+                    return (
+                      <div className="gps-musher-row" key={m.name}>
+                        <input
+                          className="gps-place-input"
+                          type="number"
+                          min="1"
+                          max="100"
+                          placeholder="#"
+                          value={g.place}
+                          onChange={e => {
+                            const updated = [...gpsStandings];
+                            updated[i] = { ...g, place: e.target.value };
+                            setGpsStandings(updated);
+                          }}
+                        />
+                        <div>
+                          <div className="gps-musher-name">{m.name}</div>
+                          <div className="gps-musher-team" style={{ color: TEAM_COLORS[ti] }}>{teamObj?.emoji} {m.team}</div>
+                        </div>
+                        <div style={{ gridColumn: "span 1" }} />
+                        <select
+                          className="gps-cp-select"
+                          value={g.checkpoint}
+                          onChange={e => {
+                            const updated = [...gpsStandings];
+                            updated[i] = { ...g, checkpoint: e.target.value };
+                            setGpsStandings(updated);
+                          }}
+                        >
+                          <option value="">— checkpoint —</option>
+                          {CHECKPOINTS.map(cp => (
+                            <option key={cp.name} value={cp.name}>{cp.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  })}
+                </div>
+                <button className="gps-save-btn" onClick={saveGpsStandings}>
+                  💾 Save &amp; Apply GPS Standings
+                </button>
+                {gpsSaveToast && (
+                  <div className="gps-save-toast">
+                    ✓ GPS standings saved — all views now using GPS data · {gpsUpdatedAt}
+                  </div>
+                )}
+              </div>
+
+              {/* Quick-clear back to official */}
+              {gpsStandings.some(g => g.place) && (
+                <div style={{ textAlign:"center" }}>
+                  <button className="toggle-btn" onClick={() => {
+                    setGpsStandings(allTeamMushers.map(m => ({ name: m.name, place: "", checkpoint: "" })));
+                    setUseGps(false);
+                    try {
+                      localStorage.removeItem(GPS_STORAGE_KEY);
+                      localStorage.removeItem(GPS_TIME_KEY);
+                      localStorage.setItem("iditarod_use_gps", "false");
+                    } catch {}
+                    setGpsUpdatedAt(null);
+                  }}>
+                    Clear GPS data &amp; revert to official standings
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ── All Mushers tab ── */}
           {activeTab === "standings" && (
             <div>
@@ -746,7 +927,7 @@ export default function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {standings.map((s, i) => {
+                    {activeStandings.map((s, i) => {
                       const hl = allMusherNames.some(n => matchMusher(n, s.name));
                       return (
                         <tr key={i} className={hl ? "hl" : ""}>
