@@ -301,9 +301,13 @@ const styles = `
   .gps-editor-hint { font-family:'Courier Prime',monospace; font-size:10px; color:var(--text-muted); letter-spacing:.06em; }
   .gps-grid { display:grid; grid-template-columns:1fr 1fr; gap:0; }
   @media(max-width:600px) { .gps-grid { grid-template-columns:1fr; } }
-  .gps-musher-row { display:grid; grid-template-columns:42px 1fr 80px 1fr; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid rgba(42,74,48,.3); }
+  .gps-musher-row { display:grid; grid-template-columns:56px 1fr 10px 1fr; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid rgba(42,74,48,.3); }
   .gps-musher-row:nth-child(odd) { background:rgba(255,255,255,.012); }
-  .gps-place-input { font-family:'Courier Prime',monospace; font-size:14px; font-weight:700; color:var(--green-light); background:var(--surface-lift); border:1px solid var(--border); border-radius:2px; padding:5px 8px; width:100%; text-align:center; outline:none; transition:border-color .15s; }
+  .gps-place-input { font-family:'Courier Prime',monospace; font-size:14px; font-weight:700; color:var(--green-light); background:var(--surface-lift); border:1px solid var(--border); border-radius:2px; padding:5px 4px; width:52px; text-align:center; outline:none; transition:border-color .15s; }
+  /* Hide number input spinners */
+  .gps-place-input::-webkit-outer-spin-button,
+  .gps-place-input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+  .gps-place-input[type=number] { -moz-appearance:textfield; }
   .gps-place-input:focus { border-color:var(--gold); color:var(--gold); }
   .gps-musher-name { font-size:13px; color:var(--text); }
   .gps-musher-team { font-family:'Courier Prime',monospace; font-size:9px; color:var(--text-muted); margin-top:2px; letter-spacing:.06em; }
@@ -318,6 +322,21 @@ const styles = `
   .section-row { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
   .section-label { font-family:'Courier Prime',monospace; font-size:9px; letter-spacing:.28em; text-transform:uppercase; color:var(--text-muted); white-space:nowrap; }
   .section-rule2 { flex:1; height:1px; background:var(--border); }
+  .pin-gate { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; gap:20px; }
+  .pin-gate-icon { font-size:48px; margin-bottom:4px; }
+  .pin-gate-title { font-family:'Playfair Display',serif; font-size:22px; font-weight:700; color:var(--white); }
+  .pin-gate-hint { font-family:'Courier Prime',monospace; font-size:11px; color:var(--text-muted); letter-spacing:.1em; }
+  .pin-row { display:flex; gap:10px; align-items:center; }
+  .pin-input { font-family:'Courier Prime',monospace; font-size:22px; font-weight:700; letter-spacing:.4em; color:var(--gold); background:var(--surface-lift); border:1px solid var(--border); border-radius:2px; padding:10px 16px; width:140px; text-align:center; outline:none; transition:border-color .15s; }
+  .pin-input:focus { border-color:var(--gold); }
+  .pin-input.error { border-color:var(--red); color:var(--red); animation:shake .3s ease; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+  .pin-submit { font-family:'Courier Prime',monospace; font-size:11px; letter-spacing:.18em; text-transform:uppercase; padding:11px 20px; background:var(--gold); color:#0d1a0f; border:none; border-radius:2px; cursor:pointer; font-weight:700; transition:background .15s; }
+  .pin-submit:hover { background:var(--gold-light); }
+  .pin-error-msg { font-family:'Courier Prime',monospace; font-size:11px; color:var(--red); letter-spacing:.08em; height:16px; }
+  .pin-lock-btn { font-family:'Courier Prime',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; padding:5px 10px; background:transparent; border:1px solid var(--border); border-radius:2px; color:var(--text-muted); cursor:pointer; margin-left:auto; display:block; margin-bottom:12px; }
+  .pin-lock-btn:hover { border-color:var(--red); color:var(--red); }
+
   .toggle-btn { font-family:'Courier Prime',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; padding:5px 12px; background:transparent; border:1px solid var(--border); border-radius:2px; color:var(--text-muted); cursor:pointer; transition:border-color .2s,color .2s; }
   .toggle-btn:hover { border-color:var(--gold); color:var(--gold); }
 
@@ -353,6 +372,24 @@ export default function App() {
   const [celebration, setCelebration]   = useState(null);
   const [hoveredTeam, setHoveredTeam]   = useState(null);
   const notifWorkerRef                  = useRef(null);
+
+  // GPS PIN lock
+  const GPS_PIN = "0624";  // ← change this to whatever you want
+  const [pinUnlocked, setPinUnlocked] = useState(false);
+  const [pinInput, setPinInput]       = useState("");
+  const [pinError, setPinError]       = useState(false);
+
+  const submitPin = () => {
+    if (pinInput === GPS_PIN) {
+      setPinUnlocked(true);
+      setPinError(false);
+      setPinInput("");
+    } else {
+      setPinError(true);
+      setPinInput("");
+      setTimeout(() => setPinError(false), 2000);
+    }
+  };
 
   // GPS manual standings state
   const GPS_STORAGE_KEY = "iditarod_gps_standings";
@@ -831,83 +868,113 @@ export default function App() {
                 <h2 className="section-title">GPS Tracker Entry</h2>
                 <div className="section-rule" />
               </div>
-              <p style={{ fontFamily:"'Courier Prime',monospace", fontSize:11, color:"var(--text-muted)", letterSpacing:".06em", marginBottom:20 }}>
-                Enter current placements from the GPS tracker. Leave blank for any musher not yet placed. Hit Save to apply and switch everyone to GPS standings.
-              </p>
-              <div className="gps-editor">
-                <div className="gps-editor-header">
-                  <span className="gps-editor-title">Your 12 Mushers</span>
-                  <span className="gps-editor-hint">Place · Checkpoint (optional)</span>
-                </div>
-                <div className="gps-grid">
-                  {allTeamMushers.map((m, i) => {
-                    const g = gpsStandings[i] || { name: m.name, place: "", checkpoint: "" };
-                    const teamObj = TEAMS.find(t => t.name === m.team);
-                    const ti = TEAMS.indexOf(teamObj);
-                    return (
-                      <div className="gps-musher-row" key={m.name}>
-                        <input
-                          className="gps-place-input"
-                          type="number"
-                          min="1"
-                          max="100"
-                          placeholder="#"
-                          value={g.place}
-                          onChange={e => {
-                            const updated = [...gpsStandings];
-                            updated[i] = { ...g, place: e.target.value };
-                            setGpsStandings(updated);
-                          }}
-                        />
-                        <div>
-                          <div className="gps-musher-name">{m.name}</div>
-                          <div className="gps-musher-team" style={{ color: TEAM_COLORS[ti] }}>{teamObj?.emoji} {m.team}</div>
-                        </div>
-                        <div style={{ gridColumn: "span 1" }} />
-                        <select
-                          className="gps-cp-select"
-                          value={g.checkpoint}
-                          onChange={e => {
-                            const updated = [...gpsStandings];
-                            updated[i] = { ...g, checkpoint: e.target.value };
-                            setGpsStandings(updated);
-                          }}
-                        >
-                          <option value="">— checkpoint —</option>
-                          {CHECKPOINTS.map(cp => (
-                            <option key={cp.name} value={cp.name}>{cp.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                    );
-                  })}
-                </div>
-                <button className="gps-save-btn" onClick={saveGpsStandings}>
-                  💾 Save &amp; Apply GPS Standings
-                </button>
-                {gpsSaveToast && (
-                  <div className="gps-save-toast">
-                    ✓ GPS standings saved — all views now using GPS data · {gpsUpdatedAt}
-                  </div>
-                )}
-              </div>
 
-              {/* Quick-clear back to official */}
-              {gpsStandings.some(g => g.place) && (
-                <div style={{ textAlign:"center" }}>
-                  <button className="toggle-btn" onClick={() => {
-                    setGpsStandings(allTeamMushers.map(m => ({ name: m.name, place: "", checkpoint: "" })));
-                    setUseGps(false);
-                    try {
-                      localStorage.removeItem(GPS_STORAGE_KEY);
-                      localStorage.removeItem(GPS_TIME_KEY);
-                      localStorage.setItem("iditarod_use_gps", "false");
-                    } catch {}
-                    setGpsUpdatedAt(null);
-                  }}>
-                    Clear GPS data &amp; revert to official standings
-                  </button>
+              {!pinUnlocked ? (
+                /* ── PIN gate ── */
+                <div className="gps-editor">
+                  <div className="pin-gate">
+                    <div className="pin-gate-icon">🔒</div>
+                    <div className="pin-gate-title">Admin Access Required</div>
+                    <div className="pin-gate-hint">Enter PIN to update standings</div>
+                    <div className="pin-row">
+                      <input
+                        className={`pin-input${pinError ? " error" : ""}`}
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={6}
+                        placeholder="····"
+                        value={pinInput}
+                        onChange={e => setPinInput(e.target.value)}
+                        onKeyDown={e => e.key === "Enter" && submitPin()}
+                        autoFocus
+                      />
+                      <button className="pin-submit" onClick={submitPin}>Unlock</button>
+                    </div>
+                    <div className="pin-error-msg">{pinError ? "Incorrect PIN — try again" : ""}</div>
+                  </div>
                 </div>
+              ) : (
+                /* ── Unlocked editor ── */
+                <>
+                  <button className="pin-lock-btn" onClick={() => setPinUnlocked(false)}>🔒 Lock</button>
+                  <p style={{ fontFamily:"'Courier Prime',monospace", fontSize:11, color:"var(--text-muted)", letterSpacing:".06em", marginBottom:20 }}>
+                    Enter current placements from the GPS tracker. Leave blank for any musher not yet placed. Hit Save to apply and switch everyone to GPS standings.
+                  </p>
+                  <div className="gps-editor">
+                    <div className="gps-editor-header">
+                      <span className="gps-editor-title">Your 12 Mushers</span>
+                      <span className="gps-editor-hint">Place · Checkpoint (optional)</span>
+                    </div>
+                    <div className="gps-grid">
+                      {allTeamMushers.map((m, i) => {
+                        const g = gpsStandings[i] || { name: m.name, place: "", checkpoint: "" };
+                        const teamObj = TEAMS.find(t => t.name === m.team);
+                        const ti = TEAMS.indexOf(teamObj);
+                        return (
+                          <div className="gps-musher-row" key={m.name}>
+                            <input
+                              className="gps-place-input"
+                              type="number"
+                              min="1"
+                              max="999"
+                              placeholder="#"
+                              value={g.place}
+                              onChange={e => {
+                                const updated = [...gpsStandings];
+                                updated[i] = { ...g, place: e.target.value };
+                                setGpsStandings(updated);
+                              }}
+                            />
+                            <div>
+                              <div className="gps-musher-name">{m.name}</div>
+                              <div className="gps-musher-team" style={{ color: TEAM_COLORS[ti] }}>{teamObj?.emoji} {m.team}</div>
+                            </div>
+                            <div style={{ gridColumn: "span 1" }} />
+                            <select
+                              className="gps-cp-select"
+                              value={g.checkpoint}
+                              onChange={e => {
+                                const updated = [...gpsStandings];
+                                updated[i] = { ...g, checkpoint: e.target.value };
+                                setGpsStandings(updated);
+                              }}
+                            >
+                              <option value="">— checkpoint —</option>
+                              {CHECKPOINTS.map(cp => (
+                                <option key={cp.name} value={cp.name}>{cp.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <button className="gps-save-btn" onClick={saveGpsStandings}>
+                      💾 Save &amp; Apply GPS Standings
+                    </button>
+                    {gpsSaveToast && (
+                      <div className="gps-save-toast">
+                        ✓ GPS standings saved — all views now using GPS data · {gpsUpdatedAt}
+                      </div>
+                    )}
+                  </div>
+
+                  {gpsStandings.some(g => g.place) && (
+                    <div style={{ textAlign:"center" }}>
+                      <button className="toggle-btn" onClick={() => {
+                        setGpsStandings(allTeamMushers.map(m => ({ name: m.name, place: "", checkpoint: "" })));
+                        setUseGps(false);
+                        try {
+                          localStorage.removeItem(GPS_STORAGE_KEY);
+                          localStorage.removeItem(GPS_TIME_KEY);
+                          localStorage.setItem("iditarod_use_gps", "false");
+                        } catch {}
+                        setGpsUpdatedAt(null);
+                      }}>
+                        Clear GPS data &amp; revert to official standings
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
