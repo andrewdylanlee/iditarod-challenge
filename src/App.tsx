@@ -488,7 +488,7 @@ export default function App() {
         if (data) {
           if (data.standings) setGpsStandings(data.standings);
           if (data.updatedAt) setGpsUpdatedAt(data.updatedAt);
-          if (data.useGps) setUseGps(true);
+          setUseGps(!!data.useGps);
         }
       } catch {}
       setGpsLoading(false);
@@ -885,7 +885,7 @@ export default function App() {
           {loading && (
             <div className="status-bar status-loading"><div className="spinner" />Fetching standings from iditarod.com…</div>
           )}
-          {!loading && errorMsg && (
+          {!loading && errorMsg && !useGps && (
             <div className="status-bar status-error">⚠ {errorMsg}</div>
           )}
           {updatedAt && !loading && (
