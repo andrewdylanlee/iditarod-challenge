@@ -403,6 +403,10 @@ const styles = `
   .pin-error-msg { font-family:'Courier Prime',monospace; font-size:11px; color:var(--red); letter-spacing:.08em; height:16px; }
   .pin-lock-btn { font-family:'Courier Prime',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; padding:5px 10px; background:transparent; border:1px solid var(--border); border-radius:2px; color:var(--text-muted); cursor:pointer; margin-left:auto; display:block; margin-bottom:12px; }
   .pin-lock-btn:hover { border-color:var(--red); color:var(--red); }
+  .scratch-check { display:flex; align-items:center; gap:6px; cursor:pointer; font-family:'Courier Prime',monospace; font-size:10px; color:var(--red); letter-spacing:.06em; white-space:nowrap; }
+  .scratch-check input { accent-color:var(--red); width:14px; height:14px; cursor:pointer; }
+  .scratched-row { opacity:.5; }
+  .scratched-badge { font-family:'Courier Prime',monospace; font-size:10px; color:var(--red); letter-spacing:.06em; }
   .token-setup { padding:32px 28px; }
   .token-setup-title { font-family:'Playfair Display',serif; font-size:18px; font-weight:700; color:var(--white); margin-bottom:8px; }
   .token-setup-hint { font-family:'Courier Prime',monospace; font-size:11px; color:var(--text-muted); letter-spacing:.06em; line-height:1.7; margin-bottom:20px; }
@@ -469,7 +473,7 @@ export default function App() {
 
   // GPS manual standings state — written to GitHub, readable by all devices
   const allTeamMushers  = TEAMS.flatMap(t => t.mushers.map(m => ({ name: m, team: t.name })));
-  const emptyGps        = allTeamMushers.map(m => ({ name: m.name, place: "", checkpoint: "" }));
+  const emptyGps        = allTeamMushers.map(m => ({ name: m.name, place: "", checkpoint: "", scratched: false }));
   const [useGps, setUseGps]             = useState(false);
   const [gpsStandings, setGpsStandings] = useState(emptyGps);
   const [gpsUpdatedAt, setGpsUpdatedAt] = useState(null);
@@ -486,8 +490,10 @@ export default function App() {
       try {
         const data = await ghRead();
         if (data) {
+          // Batch all state updates together to avoid race conditions on Safari
           if (data.standings) setGpsStandings(data.standings);
           if (data.updatedAt) setGpsUpdatedAt(data.updatedAt);
+          // Always set useGps based on what's in the file
           setUseGps(!!data.useGps);
         }
       } catch {}
@@ -496,12 +502,23 @@ export default function App() {
   }, []);
 
   // The active standings to use for display
-  const activeStandings = useGps && gpsStandings.some(g => g.place)
-    ? gpsStandings.filter(g => g.place).map(g => ({
-        place: parseInt(g.place, 10),
+  // DNF place = last currently-placed musher in full standings + 1
+  // Uses the live/demo standings for accuracy, falls back to GPS places
+  const lastPlaceInStandings = standings.reduce((max, s) => {
+    return s.place > max ? s.place : max;
+  }, 0);
+  const lastPlaceInGps = gpsStandings.reduce((max, g) => {
+    const p = parseInt(g.place, 10);
+    return !isNaN(p) && p > max ? p : max;
+  }, 0);
+  const dnfPlace = Math.max(lastPlaceInStandings, lastPlaceInGps) + 1;
+  const activeStandings = useGps && gpsStandings.some(g => g.place || g.scratched)
+    ? gpsStandings.filter(g => g.place || g.scratched).map(g => ({
+        place: g.scratched ? dnfPlace : parseInt(g.place, 10),
         name: g.name,
-        checkpoint: g.checkpoint || "",
+        checkpoint: g.scratched ? "Scratched" : (g.checkpoint || ""),
         dogs: "", timeEnroute: "", speed: "",
+        scratched: !!g.scratched,
       })).sort((a, b) => a.place - b.place)
     : standings;
 
@@ -931,7 +948,7 @@ export default function App() {
                     {team.musherData.map((m, i) => (
                       <div className="musher-row" key={i}>
                         <div className={`m-place${m.place === null ? " tbd" : ""}`}>
-                          {m.place === null ? "?" : `#${m.place}`}
+                          {m.place === null ? "?" : m.scratched ? <span className="scratched-badge">DNF/{m.place}</span> : `#${m.place}`}
                         </div>
                         <div className="m-info">
                           <div className="m-name">{m.label}</div>
@@ -1056,7 +1073,8 @@ export default function App() {
                               min="1"
                               max="999"
                               placeholder="#"
-                              value={g.place}
+                              value={g.scratched ? "" : g.place}
+                              disabled={!!g.scratched}
                               onChange={e => {
                                 const updated = [...gpsStandings];
                                 updated[i] = { ...g, place: e.target.value };
@@ -1064,10 +1082,17 @@ export default function App() {
                               }}
                             />
                             <div>
-                              <div className="gps-musher-name">{m.name}</div>
+                              <div className={`gps-musher-name${g.scratched ? " scratched-row" : ""}`}>{m.name}</div>
                               <div className="gps-musher-team" style={{ color: TEAM_COLORS[ti] }}>{teamObj?.emoji} {m.team}</div>
                             </div>
-                            <div style={{ gridColumn: "span 1" }} />
+                            <label className="scratch-check">
+                              <input type="checkbox" checked={!!g.scratched} onChange={e => {
+                                const updated = [...gpsStandings];
+                                updated[i] = { ...g, scratched: e.target.checked, place: e.target.checked ? "" : g.place };
+                                setGpsStandings(updated);
+                              }} />
+                              DNF/{dnfPlace}
+                            </label>
                             <select
                               className="gps-cp-select"
                               value={g.checkpoint}
