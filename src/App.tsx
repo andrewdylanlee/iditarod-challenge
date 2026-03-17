@@ -82,19 +82,35 @@ function parseStandingsHTML(html) {
   const doc = new DOMParser().parseFromString(html, "text/html");
   const rows = doc.querySelectorAll("table tr");
   const results = [];
+  const scratched = [];
+
   rows.forEach(row => {
     const cells = row.querySelectorAll("td");
     if (cells.length < 10) return;
-    const place = parseInt(cells[0]?.textContent?.trim(), 10);
-    if (isNaN(place)) return;
     const name = cells[1]?.textContent?.trim().replace(/\s+/g," ");
-    const checkpoint = cells[3]?.textContent?.trim();
-    const inTime = cells[4]?.textContent?.trim();
-    const dogs = cells[5]?.textContent?.trim();
-    const timeEnroute = cells[9]?.textContent?.trim();
-    const speed = cells[12]?.textContent?.trim();
-    if (name && checkpoint) results.push({ place, name, checkpoint, inTime, dogs, timeEnroute, speed });
+    if (!name) return;
+    const status = cells[15]?.textContent?.trim() || "";
+    const isScratched = /scratch|out of race/i.test(status);
+    const place = parseInt(cells[0]?.textContent?.trim(), 10);
+    if (isScratched) {
+      scratched.push(name);
+    } else {
+      if (isNaN(place)) return;
+      const checkpoint = cells[3]?.textContent?.trim();
+      const inTime = cells[4]?.textContent?.trim();
+      const dogs = cells[5]?.textContent?.trim();
+      const timeEnroute = cells[9]?.textContent?.trim();
+      const speed = cells[12]?.textContent?.trim();
+      if (checkpoint) results.push({ place, name, checkpoint, inTime, dogs, timeEnroute, speed, scratched: false });
+    }
   });
+
+  // Assign DNF place to scratched mushers: last place + 1, +2, etc.
+  const maxPlace = results.reduce((m, r) => r.place > m ? r.place : m, 0);
+  scratched.forEach((name, i) => {
+    results.push({ place: maxPlace + 1 + i, name, checkpoint: "Scratched", inTime: "", dogs: "", timeEnroute: "", speed: "", scratched: true });
+  });
+
   return results;
 }
 
@@ -545,7 +561,7 @@ export default function App() {
   const teamResults = TEAMS.map(team => {
     const musherData = team.mushers.map(name => {
       const entry = activeStandings.find(s => matchMusher(name, s.name));
-      return entry ? { ...entry, label: name } : { label: name, place: null, checkpoint: "", dogs: "", timeEnroute: "" };
+      return entry ? { ...entry, label: name } : { label: name, place: null, checkpoint: "", dogs: "", timeEnroute: "", scratched: false };
     }).sort((a, b) => {
       if (a.place === null && b.place === null) return 0;
       if (a.place === null) return 1;
