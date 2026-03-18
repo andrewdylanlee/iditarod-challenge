@@ -733,13 +733,19 @@ export default function App() {
     }
     setPrevAvgs(currentAvgs);
 
-    // Only celebrate when ALL mushers across ALL teams are placed or scratched,
-    // then declare the team with the best (lowest) average the winner
+    // Only celebrate when every team musher has either finished (checkpoint === "Nome")
+    // or scratched — meaning the race is truly over for all 12 mushers
     if (finalData && finalData.length > 0) {
-      const allPlaced = TEAMS.every(team =>
-        team.mushers.every(name => finalData.some(s => matchMusher(name, s.name)))
+      const raceOver = TEAMS.every(team =>
+        team.mushers.every(name => {
+          const entry = finalData.find(s => matchMusher(name, s.name));
+          if (!entry) return false;
+          const finished = entry.checkpoint?.toLowerCase() === "nome";
+          const scratched = entry.scratched || /scratch/i.test(entry.checkpoint || "");
+          return finished || scratched;
+        })
       );
-      if (allPlaced) {
+      if (raceOver) {
         const teamAvgs = TEAMS.map(team => {
           const places = team.mushers.map(name => {
             const entry = finalData.find(s => matchMusher(name, s.name));
