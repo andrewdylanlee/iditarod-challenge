@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 // ─── TEAMS ────────────────────────────────────────────────────────────────────
 const TEAMS = [
-  { id: 1, name: "Kevin, Jennika & Family", emoji: "🐺", mushers: ["Jessie Holmes", "Jessie Royer", "Mille Porsild"] },
+  { id: 1, name: "Kevin, Jennika & Family", emoji: "GRAVESTONE", mushers: ["Jessie Holmes", "Jessie Royer", "Mille Porsild"] },
   { id: 2, name: "Andrew, Jessica & Family", emoji: "🦅", mushers: ["Matt Hall", "Travis Beals", "Jeff Deeter"] },
   { id: 3, name: "David & Debbie", emoji: "🐻", mushers: ["Paige Drobny", "Ryan Redington", "Peter Kaiser"] },
   { id: 4, name: "Adam, Jana & Family", emoji: "🦌", mushers: ["Rohn Buser", "Michelle Phillips", "Wade Marrs"] },
@@ -454,7 +454,111 @@ const styles = `
 // Team colors for chart
 const TEAM_COLORS = ["#c9973a", "#6ab87e", "#7aa8e0", "#e07a7a"];
 
+
+// Dead dog SVG — renders identically on all platforms (no emoji inconsistency)
+const DeadDogIcon = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{display:"inline-block",verticalAlign:"middle"}}>
+    {/* Body */}
+    <ellipse cx="16" cy="22" rx="11" ry="6" fill="#c8a96e" />
+    {/* Head */}
+    <ellipse cx="26" cy="18" rx="6" ry="5" fill="#c8a96e" />
+    {/* Floppy ear */}
+    <ellipse cx="28" cy="14" rx="3" ry="4" fill="#a07840" transform="rotate(20 28 14)" />
+    {/* Snout */}
+    <ellipse cx="31" cy="20" rx="2.5" ry="1.8" fill="#b08050" />
+    {/* Nose */}
+    <ellipse cx="32" cy="19.5" rx="1" ry=".7" fill="#333" />
+    {/* X eyes — dead */}
+    <text x="24" y="17.5" fontSize="5" fill="#333" fontWeight="bold" textAnchor="middle">✕</text>
+    {/* Tongue hanging out */}
+    <ellipse cx="31.5" cy="22" rx="1.2" ry="2" fill="#e05070" />
+    {/* Legs up in the air */}
+    <rect x="7" y="12" width="3" height="8" rx="1.5" fill="#c8a96e" transform="rotate(-30 7 16)" />
+    <rect x="12" y="11" width="3" height="8" rx="1.5" fill="#c8a96e" transform="rotate(-20 12 15)" />
+    <rect x="17" y="11" width="3" height="8" rx="1.5" fill="#c8a96e" transform="rotate(20 17 15)" />
+    <rect x="22" y="12" width="3" height="8" rx="1.5" fill="#c8a96e" transform="rotate(30 22 16)" />
+    {/* Tail curled up */}
+    <path d="M5 20 Q2 16 5 13 Q7 11 8 14" stroke="#c8a96e" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+    {/* Little stars/stink lines */}
+    <text x="3" y="10" fontSize="6" fill="#f0c040">★</text>
+    <text x="10" y="7" fontSize="5" fill="#f0c040">✦</text>
+  </svg>
+);
+
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
+
+const GravestoneIcon = ({ size = 24 }) => {
+  const s = size / 24;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{display:"inline-block",verticalAlign:"middle"}}>
+      <rect x="2" y="22" width="20" height="2" rx="1" fill="#888"/>
+      <rect x="5" y="6" width="14" height="16" rx="7" fill="#999"/>
+      <text x="12" y="14" fontSize="5" fontWeight="bold" fill="white" textAnchor="middle" fontFamily="monospace">R.I.P</text>
+      <text x="12" y="19" fontSize="3.5" fill="white" textAnchor="middle" fontFamily="monospace">Good Boy</text>
+      <circle cx="9" cy="8" r="1.2" fill="white" opacity="0.6"/>
+      <circle cx="12" cy="7" r="1" fill="white" opacity="0.6"/>
+      <circle cx="15" cy="8" r="1.2" fill="white" opacity="0.6"/>
+      <circle cx="10.5" cy="6.2" r="0.9" fill="white" opacity="0.6"/>
+      <circle cx="13.5" cy="6.2" r="0.9" fill="white" opacity="0.6"/>
+    </svg>
+  );
+};
+
+const DeadLeadDogIcon = ({ width = 120, height = 36 }) => (
+  <svg width={width} height={height} viewBox="0 0 240 72" fill="none" xmlns="http://www.w3.org/2000/svg" style={{display:"inline-block",verticalAlign:"middle"}}>
+    {/* Gang line */}
+    <line x1="0" y1="28" x2="200" y2="28" stroke="#888" strokeWidth="1.5"/>
+    {/* === SLED === */}
+    <rect x="168" y="14" width="42" height="14" rx="3" fill="#8B5E3C"/>
+    <path d="M165 28 Q168 38 180 40 L210 40 Q220 38 212 28" fill="none" stroke="#5a3010" strokeWidth="3" strokeLinecap="round"/>
+    <line x1="175" y1="14" x2="175" y2="28" stroke="#6B3E1C" strokeWidth="2"/>
+    <line x1="198" y1="14" x2="198" y2="28" stroke="#6B3E1C" strokeWidth="2"/>
+    <rect x="206" y="10" width="6" height="16" rx="2" fill="#6B3E1C"/>
+    <rect x="202" y="9" width="14" height="4" rx="2" fill="#6B3E1C"/>
+    {/* Musher */}
+    <circle cx="218" cy="4" r="6" fill="#d4956a"/>
+    <rect x="212" y="-2" width="12" height="5" rx="1.5" fill="#222"/>
+    <rect x="214" y="8" width="8" height="18" rx="3" fill="#3a6a9a"/>
+    <line x1="214" y1="11" x2="207" y2="13" stroke="#3a6a9a" strokeWidth="3" strokeLinecap="round"/>
+    <line x1="222" y1="11" x2="207" y2="13" stroke="#3a6a9a" strokeWidth="3" strokeLinecap="round"/>
+    {/* === DOG 2 — healthy running === */}
+    <g transform="translate(108,12)">
+      <ellipse cx="16" cy="20" rx="24" ry="11" fill="#b07840"/>
+      <ellipse cx="36" cy="14" rx="12" ry="10" fill="#b07840"/>
+      <ellipse cx="42" cy="8" rx="5" ry="7" fill="#8a5820" transform="rotate(15 42 8)"/>
+      <ellipse cx="46" cy="16" rx="5" ry="3" fill="#9a6830"/>
+      <circle cx="50" cy="14" r="2" fill="#222"/>
+      <circle cx="38" cy="11" r="2" fill="#222"/>
+      <circle cx="38.8" cy="10.2" r="0.8" fill="white"/>
+      <path d="M-6 16 Q-16 8 -12 2" fill="none" stroke="#b07840" strokeWidth="4" strokeLinecap="round"/>
+      <line x1="2" y1="29" x2="-4" y2="40" stroke="#b07840" strokeWidth="4" strokeLinecap="round"/>
+      <line x1="10" y1="30" x2="8" y2="42" stroke="#b07840" strokeWidth="4" strokeLinecap="round"/>
+      <line x1="22" y1="30" x2="26" y2="42" stroke="#b07840" strokeWidth="4" strokeLinecap="round"/>
+      <line x1="30" y1="28" x2="38" y2="38" stroke="#b07840" strokeWidth="4" strokeLinecap="round"/>
+      <line x1="46" y1="14" x2="62" y2="16" stroke="#888" strokeWidth="1.5"/>
+    </g>
+    {/* === LEAD DOG — dead, on side === */}
+    <g transform="translate(10,10)">
+      <ellipse cx="48" cy="26" rx="30" ry="12" fill="#c8935a" transform="rotate(-10 48 26)"/>
+      <ellipse cx="76" cy="34" rx="13" ry="11" fill="#c8935a"/>
+      <ellipse cx="83" cy="44" rx="5" ry="8" fill="#a06830" transform="rotate(8 83 44)"/>
+      <ellipse cx="87" cy="36" rx="5" ry="3" fill="#b07840"/>
+      <text x="72" y="31" fontSize="9" fontWeight="bold" fill="#333" fontFamily="monospace" textAnchor="middle">✕</text>
+      <text x="81" y="29" fontSize="9" fontWeight="bold" fill="#333" fontFamily="monospace" textAnchor="middle">✕</text>
+      <ellipse cx="90" cy="40" rx="4" ry="6" fill="#e06060" transform="rotate(15 90 40)"/>
+      <ellipse cx="90" cy="40" rx="4" ry="3" fill="#c04040" transform="rotate(15 90 40)"/>
+      <line x1="34" y1="18" x2="28" y2="4" stroke="#c8935a" strokeWidth="4" strokeLinecap="round"/>
+      <line x1="44" y1="14" x2="42" y2="0" stroke="#c8935a" strokeWidth="4" strokeLinecap="round"/>
+      <line x1="56" y1="14" x2="58" y2="0" stroke="#c8935a" strokeWidth="4" strokeLinecap="round"/>
+      <line x1="66" y1="18" x2="72" y2="6" stroke="#c8935a" strokeWidth="4" strokeLinecap="round"/>
+      <text x="22" y="2" fontSize="10" fill="#f0c040" fontFamily="monospace">★</text>
+      <text x="40" y="-4" fontSize="8" fill="#f0c040" fontFamily="monospace">✦</text>
+      <text x="58" y="-2" fontSize="9" fill="#f0c040" fontFamily="monospace">★</text>
+      <line x1="0" y1="24" x2="0" y2="24" stroke="#888" strokeWidth="1.5"/>
+    </g>
+  </svg>
+);
+
 export default function App() {
   const [standings, setStandings]       = useState(DEMO);
   const [isDemo, setIsDemo]             = useState(true);
@@ -862,7 +966,7 @@ export default function App() {
           }} />
         ))}
         <div className="celebration-card">
-          <div className="celebration-trophy">{team.emoji}</div>
+          <div className="celebration-trophy">{team.emoji === "GRAVESTONE" ? <GravestoneIcon size={72} /> : team.emoji}</div>
           <div className="celebration-title">Race Complete · Winner</div>
           <div className="celebration-winner">{team.name}</div>
           <div className="celebration-avg">
@@ -951,7 +1055,7 @@ export default function App() {
                   <div className="card-header">
                     <div className={`rank-num ${rc(rank)}`}>{rank + 1}</div>
                     <div className="card-family">
-                      <div className="family-emoji">{team.emoji}</div>
+                      <div className="family-emoji">{team.emoji === "GRAVESTONE" ? <GravestoneIcon size={28} /> : team.emoji}</div>
                       <div className="family-name">{team.name}</div>
                     </div>
                     <div className="card-avg">
@@ -968,7 +1072,10 @@ export default function App() {
                           {m.place === null ? "?" : m.scratched ? <span className="scratched-badge">DNF/{m.place}</span> : `#${m.place}`}
                         </div>
                         <div className="m-info">
-                          <div className="m-name">{m.label}</div>
+                          <div className="m-name" style={{display:"flex",alignItems:"center",gap:8}}>
+                          {m.label}
+                          {m.scratched && <DeadLeadDogIcon width={90} height={27} />}
+                        </div>
                           <div className="m-meta">
                             {m.checkpoint && <div className="m-meta-item"><span>📍</span>{m.checkpoint}</div>}
                             {m.dogs && <div className="m-meta-item"><span>🐕</span>{m.dogs} dogs</div>}
