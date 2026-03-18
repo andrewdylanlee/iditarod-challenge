@@ -105,10 +105,11 @@ function parseStandingsHTML(html) {
     }
   });
 
-  // Assign DNF place to scratched mushers: last place + 1, +2, etc.
+  // Assign DNF place to scratched mushers: all get last place finisher + 1
   const maxPlace = results.reduce((m, r) => r.place > m ? r.place : m, 0);
-  scratched.forEach((name, i) => {
-    results.push({ place: maxPlace + 1 + i, name, checkpoint: "Scratched", inTime: "", dogs: "", timeEnroute: "", speed: "", scratched: true });
+  const dnfPlace = maxPlace + 1;
+  scratched.forEach((name) => {
+    results.push({ place: dnfPlace, name, checkpoint: "Scratched", inTime: "", dogs: "", timeEnroute: "", speed: "", scratched: true });
   });
 
   return results;
