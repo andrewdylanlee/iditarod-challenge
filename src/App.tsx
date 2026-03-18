@@ -519,12 +519,12 @@ export default function App() {
   }, []);
 
   // The active standings to use for display
-  // DNF place = last currently-placed musher in full standings + 1
-  // Uses the live/demo standings for accuracy, falls back to GPS places
-  const lastPlaceInStandings = standings.reduce((max, s) => {
+  // DNF place = last non-scratched musher's place + 1
+  // Same rule as the official standings parser: all DNF mushers get the same number
+  const lastPlaceInStandings = standings.filter(s => !s.scratched).reduce((max, s) => {
     return s.place > max ? s.place : max;
   }, 0);
-  const lastPlaceInGps = gpsStandings.reduce((max, g) => {
+  const lastPlaceInGps = gpsStandings.filter(g => !g.scratched).reduce((max, g) => {
     const p = parseInt(g.place, 10);
     return !isNaN(p) && p > max ? p : max;
   }, 0);
