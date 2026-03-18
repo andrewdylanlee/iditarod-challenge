@@ -487,22 +487,28 @@ const DeadDogIcon = ({ size = 24 }) => (
 
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 
-const GravestoneIcon = ({ size = 24 }) => {
-  const s = size / 24;
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{display:"inline-block",verticalAlign:"middle"}}>
-      <rect x="2" y="22" width="20" height="2" rx="1" fill="#888"/>
-      <rect x="5" y="6" width="14" height="16" rx="7" fill="#999"/>
-      <text x="12" y="14" fontSize="5" fontWeight="bold" fill="white" textAnchor="middle" fontFamily="monospace">R.I.P</text>
-      <text x="12" y="19" fontSize="3.5" fill="white" textAnchor="middle" fontFamily="monospace">Good Boy</text>
-      <circle cx="9" cy="8" r="1.2" fill="white" opacity="0.6"/>
-      <circle cx="12" cy="7" r="1" fill="white" opacity="0.6"/>
-      <circle cx="15" cy="8" r="1.2" fill="white" opacity="0.6"/>
-      <circle cx="10.5" cy="6.2" r="0.9" fill="white" opacity="0.6"/>
-      <circle cx="13.5" cy="6.2" r="0.9" fill="white" opacity="0.6"/>
-    </svg>
-  );
-};
+const GravestoneIcon = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 40 48" fill="none" xmlns="http://www.w3.org/2000/svg" style={{display:"inline-block",verticalAlign:"middle"}}>
+    {/* base slab */}
+    <rect x="0" y="38" width="40" height="8" rx="2" fill="#2a2a2a"/>
+    {/* headstone: rounded top, flat bottom straight into base */}
+    <path d="M4 38 L4 14 Q4 2 20 2 Q36 2 36 14 L36 38 Z" fill="#1a1a1a"/>
+    {/* inner engraved border */}
+    <path d="M8 38 L8 15 Q8 6 20 6 Q32 6 32 15 L32 38 Z" fill="none" stroke="#444" strokeWidth="1.5"/>
+    {/* R.I.P */}
+    <text x="20" y="22" fontSize="9" fontWeight="bold" fill="#ffffff" textAnchor="middle" fontFamily="monospace">R.I.P</text>
+    {/* divider */}
+    <line x1="10" y1="25" x2="30" y2="25" stroke="#555" strokeWidth="1"/>
+    {/* Good Boy */}
+    <text x="20" y="31" fontSize="5.5" fill="#dddddd" textAnchor="middle" fontFamily="monospace">Good Boy</text>
+    {/* paw print */}
+    <circle cx="16" cy="35" r="2" fill="#ffffff" opacity="0.7"/>
+    <circle cx="20" cy="34" r="1.5" fill="#ffffff" opacity="0.7"/>
+    <circle cx="24" cy="35" r="2" fill="#ffffff" opacity="0.7"/>
+    <circle cx="17.5" cy="33" r="1.4" fill="#ffffff" opacity="0.7"/>
+    <circle cx="22.5" cy="33" r="1.4" fill="#ffffff" opacity="0.7"/>
+  </svg>
+);
 
 const DeadLeadDogIcon = ({ width = 120, height = 36 }) => (
   <svg width={width} height={height} viewBox="0 0 240 72" fill="none" xmlns="http://www.w3.org/2000/svg" style={{display:"inline-block",verticalAlign:"middle"}}>
