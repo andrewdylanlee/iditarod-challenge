@@ -733,12 +733,23 @@ export default function App() {
     }
     setPrevAvgs(currentAvgs);
 
-    // Check for a finisher at Nome
-    if (finalData) {
-      const nomeMusher = finalData.find(m => m.checkpoint?.toLowerCase() === "nome");
-      if (nomeMusher) {
-        const winnerTeam = TEAMS.find(t => t.mushers.some(n => matchMusher(n, nomeMusher.name)));
-        if (winnerTeam) setCelebration(winnerTeam);
+    // Only celebrate when ALL mushers across ALL teams are placed or scratched,
+    // then declare the team with the best (lowest) average the winner
+    if (finalData && finalData.length > 0) {
+      const allPlaced = TEAMS.every(team =>
+        team.mushers.every(name => finalData.some(s => matchMusher(name, s.name)))
+      );
+      if (allPlaced) {
+        const teamAvgs = TEAMS.map(team => {
+          const places = team.mushers.map(name => {
+            const entry = finalData.find(s => matchMusher(name, s.name));
+            return entry ? entry.place : null;
+          });
+          const allKnown = places.every(p => p !== null);
+          return { team, avg: allKnown ? places.reduce((s, p) => s + p, 0) / places.length : Infinity };
+        });
+        const best = teamAvgs.reduce((a, b) => a.avg < b.avg ? a : b);
+        if (best.avg < Infinity) setCelebration(best.team);
       }
     }
   }, [prevAvgs, standings, sendNotification]);
