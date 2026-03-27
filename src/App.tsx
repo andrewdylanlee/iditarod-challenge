@@ -785,6 +785,13 @@ export default function App() {
     setGpsSaving(false);
   };
 
+  // Auto-dismiss celebration after 10 seconds
+  useEffect(() => {
+    if (!celebration) return;
+    const id = setTimeout(() => setCelebration(null), 10000);
+    return () => clearTimeout(id);
+  }, [celebration]);
+
   const toggleSource = (val) => setUseGps(val);
 
   const submitToken = async () => {
@@ -989,6 +996,7 @@ export default function App() {
           }} />
         ))}
         <div className="celebration-card">
+          <button onClick={() => setCelebration(null)} style={{position:"absolute",top:12,right:16,background:"transparent",border:"none",cursor:"pointer",fontSize:22,color:"var(--text-muted)",lineHeight:1}}>✕</button>
           <div className="celebration-trophy">{team.emoji === "GRAVESTONE" ? <GravestoneIcon size={72} /> : team.emoji}</div>
           <div className="celebration-title">Race Complete · Winner</div>
           <div className="celebration-winner">{team.name}</div>
